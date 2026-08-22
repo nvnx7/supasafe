@@ -33,6 +33,7 @@
   ],
   "workspaces": [
     "web",
-    "config"
+    "config",
+    "contracts"
   ]
 }

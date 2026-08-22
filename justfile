@@ -31,3 +31,11 @@ build-contracts:
 # Run the Cairo test suite (unit + privacy-pool integration)
 test-contracts:
     cd contracts && scarb test
+
+# Spin up a local starknet-devnet (blocks; run in its own shell)
+devnet:
+    cd contracts && bash scripts/devnet.sh
+
+# Declare and deploy the multisig. Defaults to devnet; pass a network to override.
+deploy network="devnet":
+    cd contracts && bun run deploy {{network}}

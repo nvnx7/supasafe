@@ -19,6 +19,8 @@ privacy = { git = "https://github.com/starkware-libs/starknet-privacy.git", rev 
 
 [[target.starknet-contract]]
 sierra = true
+# Declaring a class on-chain requires the CASM alongside the Sierra.
+casm = true
 
 [[test]]
 test-type = "unit"

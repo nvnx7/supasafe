@@ -38,7 +38,7 @@ pub trait IDeployable<TState> {
 }
 
 #[starknet::contract(account)]
-mod PrivateMultisigAccount {
+pub mod PrivateMultisigAccount {
     use core::ecdsa::check_ecdsa_signature;
     use core::num::traits::Zero;
     use openzeppelin::account::extensions::SRC9Component;
@@ -82,13 +82,26 @@ mod PrivateMultisigAccount {
         threshold: u32,
     }
 
+    /// Emitted at construction and on every `set_owners`.
+    ///
+    /// Carries the full resulting configuration rather than an add/remove diff, because
+    /// `_set_owners` replaces the set wholesale. A consumer can therefore reconstruct current
+    /// state from any single event, and diff consecutive ones off-chain to render history —
+    /// with no risk of drifting by missing an incremental event.
+    #[derive(Drop, starknet::Event)]
+    pub struct OwnersUpdated {
+        pub owners: Span<felt252>,
+        pub threshold: u32,
+    }
+
     #[event]
     #[derive(Drop, starknet::Event)]
-    enum Event {
+    pub enum Event {
         #[flat]
         SRC5Event: SRC5Component::Event,
         #[flat]
         SRC9Event: SRC9Component::Event,
+        OwnersUpdated: OwnersUpdated,
     }
 
     #[constructor]
@@ -237,6 +250,7 @@ mod PrivateMultisigAccount {
 
             self.owners_count.write(new_count);
             self.threshold.write(threshold);
+            self.emit(OwnersUpdated { owners, threshold });
         }
 
         /// Verifies that at least `threshold` of the encoded signatures are valid STARK-curve

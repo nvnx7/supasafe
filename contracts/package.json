@@ -1,0 +1,20 @@
+{
+  "name": "contracts",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "deploy": "bun run scripts/deploy.ts",
+    "lint": "biome check .",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "starknet": "^10.0.2"
+  },
+  "devDependencies": {
+    "@repo/config": "*",
+    "@types/node": "^26.2.0",
+    "typescript": "5.9.3"
+  }
+}

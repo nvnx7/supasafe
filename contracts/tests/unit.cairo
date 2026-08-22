@@ -8,12 +8,13 @@ use openzeppelin::utils::cryptography::snip12::{OffchainMessageHash, SNIP12Metad
 use snforge_std::signature::SignerTrait;
 use snforge_std::signature::stark_curve::{StarkCurveKeyPair, StarkCurveSignerImpl};
 use snforge_std::{
-    start_cheat_block_timestamp, start_cheat_caller_address, start_cheat_signature,
-    start_cheat_transaction_hash, stop_cheat_caller_address,
+    EventSpyAssertionsTrait, spy_events, start_cheat_block_timestamp, start_cheat_caller_address,
+    start_cheat_signature, start_cheat_transaction_hash, stop_cheat_caller_address,
 };
 use starknet::ContractAddress;
 use starknet::account::Call;
 use supersafe::hashing::compute_call_set_hash;
+use supersafe::multisig_account::PrivateMultisigAccount::{Event, OwnersUpdated};
 use supersafe::multisig_account::{
     ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidationDispatcher,
     ICustomSignatureValidationDispatcherTrait, IDeployableDispatcher, IDeployableDispatcherTrait,
@@ -261,6 +262,50 @@ fn test_stale_owner_signature_rejected_after_owner_set_replaced() {
     let result = ICustomSignatureValidationDispatcher { contract_address }
         .is_custom_signature_valid(calls_span, additional_data, signature);
     assert(result == 0, 'stale owner should be rejected');
+}
+
+// --- OwnersUpdated event ---
+
+#[test]
+fn test_constructor_emits_owners_updated() {
+    let owners = array![keypair(1).public_key, keypair(2).public_key].span();
+
+    let mut spy = spy_events();
+    let contract_address = deploy_multisig(owners, 2);
+
+    spy
+        .assert_emitted(
+            @array![(contract_address, Event::OwnersUpdated(OwnersUpdated { owners, threshold: 2 }))],
+        );
+}
+
+#[test]
+fn test_set_owners_emits_owners_updated() {
+    let owners = array![keypair(1).public_key, keypair(2).public_key].span();
+    let contract_address = deploy_multisig(owners, 2);
+    let new_owners = array![keypair(3).public_key, keypair(4).public_key, keypair(5).public_key]
+        .span();
+
+    let mut spy = spy_events();
+    start_cheat_caller_address(contract_address, contract_address);
+    IMultisigDispatcher { contract_address }.set_owners(new_owners, 3);
+    stop_cheat_caller_address(contract_address);
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    contract_address,
+                    Event::OwnersUpdated(OwnersUpdated { owners: new_owners, threshold: 3 }),
+                ),
+            ],
+        );
+    // The spy starts after deployment, so this asserts specifically that the `set_owners`
+    // call announces only the new configuration — never the one it replaced.
+    spy
+        .assert_not_emitted(
+            @array![(contract_address, Event::OwnersUpdated(OwnersUpdated { owners, threshold: 2 }))],
+        );
 }
 
 // --- protocol deploy/declare validation ---
