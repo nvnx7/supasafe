@@ -1,3 +1,51 @@
+/** Full detail for a single multisig account. */
+export interface MultisigDetail {
+  address: string;
+  /** Owner STARK public keys, in the order the contract stores them. */
+  owners: string[];
+  /** Signatures required to authorize a transaction. */
+  threshold: number;
+}
+
+/** Kinds of transaction that can be proposed against a multisig. */
+export type TransactionKind = "deposit" | "withdraw" | "transfer";
+
+/** A token the UI can move. */
+export interface TokenOption {
+  symbol: string;
+  address: string;
+}
+
+/**
+ * Tokens offered in the transaction forms.
+ *
+ * STRK is the fee token and has the same address on every Starknet network.
+ */
+export const TOKENS: TokenOption[] = [
+  {
+    symbol: "STRK",
+    address:
+      "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+  },
+  {
+    symbol: "ETH",
+    address:
+      "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+  },
+];
+
+/** Whether `value` is shaped like a positive decimal amount. */
+export function isValidAmount(value: string): boolean {
+  const trimmed = value.trim();
+  if (!/^\d*\.?\d+$/.test(trimmed)) return false;
+  return Number(trimmed) > 0;
+}
+
+/** Whether `value` is shaped like a Starknet contract address. */
+export function isValidAddress(value: string): boolean {
+  return /^0x[0-9a-fA-F]{1,64}$/.test(value.trim());
+}
+
 /** A multisig account as summarised in list views. */
 export interface MultisigSummary {
   /** Deployed account address. */

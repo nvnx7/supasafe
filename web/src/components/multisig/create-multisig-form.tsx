@@ -102,7 +102,9 @@ export function CreateMultisigForm() {
           <Select
             items={thresholdItems}
             value={String(effectiveThreshold)}
-            onValueChange={(value) => setThreshold(Number(value))}
+            onValueChange={(value) => {
+              if (value !== null) setThreshold(Number(value));
+            }}
           >
             <SelectTrigger
               id="threshold"
