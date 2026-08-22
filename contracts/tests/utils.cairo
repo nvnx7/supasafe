@@ -1,11 +1,29 @@
 use privacy::actions::ClientAction;
-use snforge_std::signature::stark_curve::{StarkCurveKeyPair, StarkCurveKeyPairImpl};
+use snforge_std::signature::SignerTrait;
+use snforge_std::signature::stark_curve::{
+    StarkCurveKeyPair, StarkCurveKeyPairImpl, StarkCurveSignerImpl,
+};
 use snforge_std::{ContractClassTrait, DeclareResultTrait, declare};
 use starknet::ContractAddress;
 use starknet::account::Call;
 
 pub fn keypair(secret: felt252) -> StarkCurveKeyPair {
     StarkCurveKeyPairImpl::from_secret_key(secret)
+}
+
+/// Packs owner signatures over `msg_hash` into this account's bundle encoding:
+/// `[sig_count, owner_index_0, r_0, s_0, ...]`. Callers must pass owners in strictly
+/// increasing index order — the contract rejects anything else as malformed.
+pub fn sign_bundle(signers: Span<(u32, StarkCurveKeyPair)>, msg_hash: felt252) -> Array<felt252> {
+    let mut signature = array![signers.len().into()];
+    for signer in signers {
+        let (owner_index, kp) = *signer;
+        let (r, s) = kp.sign(msg_hash).unwrap();
+        signature.append(owner_index.into());
+        signature.append(r);
+        signature.append(s);
+    }
+    signature
 }
 
 pub fn deploy_multisig(owners: Span<felt252>, threshold: u32) -> ContractAddress {

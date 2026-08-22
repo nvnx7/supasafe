@@ -1,18 +1,38 @@
+use openzeppelin::account::extensions::src9::snip12_utils::OutsideExecutionStructHash;
 use openzeppelin::interfaces::accounts::{ISRC6Dispatcher, ISRC6DispatcherTrait, ISRC6_ID};
 use openzeppelin::interfaces::introspection::{ISRC5Dispatcher, ISRC5DispatcherTrait};
+use openzeppelin::interfaces::src9::{
+    ISRC9_V2Dispatcher, ISRC9_V2DispatcherTrait, ISRC9_V2_ID, OutsideExecution,
+};
+use openzeppelin::utils::cryptography::snip12::{OffchainMessageHash, SNIP12Metadata};
 use snforge_std::signature::SignerTrait;
-use snforge_std::signature::stark_curve::StarkCurveSignerImpl;
+use snforge_std::signature::stark_curve::{StarkCurveKeyPair, StarkCurveSignerImpl};
 use snforge_std::{
-    start_cheat_caller_address, start_cheat_signature, start_cheat_transaction_hash,
-    stop_cheat_caller_address,
+    start_cheat_block_timestamp, start_cheat_caller_address, start_cheat_signature,
+    start_cheat_transaction_hash, stop_cheat_caller_address,
 };
 use starknet::ContractAddress;
+use starknet::account::Call;
 use supersafe::hashing::compute_call_set_hash;
 use supersafe::multisig_account::{
     ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidationDispatcher,
-    ICustomSignatureValidationDispatcherTrait, IMultisigDispatcher, IMultisigDispatcherTrait,
+    ICustomSignatureValidationDispatcherTrait, IDeployableDispatcher, IDeployableDispatcherTrait,
+    IMultisigDispatcher, IMultisigDispatcherTrait,
 };
-use super::utils::{assert_deploy_fails_with, deploy_multisig, keypair, sample_calls};
+use super::utils::{
+    assert_deploy_fails_with, deploy_multisig, keypair, sample_calls, sign_bundle,
+};
+
+/// Mirrors `SRC9Component::SNIP12MetadataImpl` so tests derive the exact hash the
+/// contract verifies against.
+impl OutsideExecutionMetadata of SNIP12Metadata {
+    fn name() -> felt252 {
+        'Account.execute_from_outside'
+    }
+    fn version() -> felt252 {
+        2
+    }
+}
 
 // --- constructor validation ---
 
@@ -241,4 +261,152 @@ fn test_stale_owner_signature_rejected_after_owner_set_replaced() {
     let result = ICustomSignatureValidationDispatcher { contract_address }
         .is_custom_signature_valid(calls_span, additional_data, signature);
     assert(result == 0, 'stale owner should be rejected');
+}
+
+// --- protocol deploy/declare validation ---
+
+fn deploy_3of2() -> (ContractAddress, StarkCurveKeyPair, StarkCurveKeyPair) {
+    let kp0 = keypair(1);
+    let kp1 = keypair(2);
+    let owners = array![kp0.public_key, kp1.public_key, keypair(3).public_key].span();
+    (deploy_multisig(owners, 2), kp0, kp1)
+}
+
+#[test]
+fn test_validate_deploy_accepts_threshold_signature() {
+    let (contract_address, kp0, kp1) = deploy_3of2();
+
+    let tx_hash: felt252 = 0xde91048;
+    let signature = sign_bundle(array![(0, kp0), (1, kp1)].span(), tx_hash);
+    start_cheat_transaction_hash(contract_address, tx_hash);
+    start_cheat_signature(contract_address, signature.span());
+
+    let result = IDeployableDispatcher { contract_address }
+        .__validate_deploy__(0x1234, 0x5678, array![kp0.public_key].span(), 1);
+    assert(result == starknet::VALIDATED, 'expected VALIDATED');
+}
+
+#[test]
+#[should_panic(expected: 'INVALID_SIGNATURE')]
+fn test_validate_deploy_rejects_insufficient_signatures() {
+    let (contract_address, kp0, _) = deploy_3of2();
+
+    let tx_hash: felt252 = 0xde91048;
+    // Only 1 of the required 2 owners.
+    let signature = sign_bundle(array![(0, kp0)].span(), tx_hash);
+    start_cheat_transaction_hash(contract_address, tx_hash);
+    start_cheat_signature(contract_address, signature.span());
+
+    IDeployableDispatcher { contract_address }
+        .__validate_deploy__(0x1234, 0x5678, array![kp0.public_key].span(), 1);
+}
+
+#[test]
+fn test_validate_declare_accepts_threshold_signature() {
+    let (contract_address, kp0, kp1) = deploy_3of2();
+
+    let tx_hash: felt252 = 0xdec1a2e;
+    let signature = sign_bundle(array![(0, kp0), (1, kp1)].span(), tx_hash);
+    start_cheat_transaction_hash(contract_address, tx_hash);
+    start_cheat_signature(contract_address, signature.span());
+
+    let result = IDeployableDispatcher { contract_address }.__validate_declare__(0x1234);
+    assert(result == starknet::VALIDATED, 'expected VALIDATED');
+}
+
+// --- SNIP-9 outside execution (paymaster / relayer path) ---
+
+/// Builds an outside execution that re-points the account at `new_owners`, plus the SNIP-12
+/// hash owners must sign. Targeting the account's own `set_owners` proves the relayed call
+/// really executes with the account itself as caller.
+fn set_owners_outside_execution(
+    contract_address: ContractAddress, new_owners: Span<felt252>, threshold: u32, nonce: felt252,
+) -> (OutsideExecution, felt252) {
+    let mut calldata = array![];
+    new_owners.serialize(ref calldata);
+    threshold.serialize(ref calldata);
+
+    let outside_execution = OutsideExecution {
+        caller: 'ANY_CALLER'.try_into().unwrap(),
+        nonce,
+        execute_after: 0,
+        execute_before: 0xffffffff,
+        calls: array![
+            Call {
+                to: contract_address,
+                selector: selector!("set_owners"),
+                calldata: calldata.span(),
+            },
+        ]
+            .span(),
+    };
+    let msg_hash = outside_execution.get_message_hash(contract_address);
+    (outside_execution, msg_hash)
+}
+
+#[test]
+fn test_supports_outside_execution_interface() {
+    let owners = array![keypair(1).public_key].span();
+    let contract_address = deploy_multisig(owners, 1);
+
+    let dispatcher = ISRC5Dispatcher { contract_address };
+    assert(dispatcher.supports_interface(ISRC9_V2_ID), 'missing SRC9 id');
+}
+
+#[test]
+fn test_execute_from_outside_runs_calls_with_quorum() {
+    let (contract_address, kp0, kp1) = deploy_3of2();
+    start_cheat_block_timestamp(contract_address, 1000);
+
+    let new_owners = array![keypair(7).public_key, keypair(8).public_key].span();
+    let (outside_execution, msg_hash) = set_owners_outside_execution(
+        contract_address, new_owners, 1, 42,
+    );
+    let signature = sign_bundle(array![(0, kp0), (1, kp1)].span(), msg_hash);
+
+    let dispatcher = ISRC9_V2Dispatcher { contract_address };
+    assert(dispatcher.is_valid_outside_execution_nonce(42), 'nonce should start unused');
+
+    dispatcher.execute_from_outside_v2(outside_execution, signature.span());
+
+    let multisig = IMultisigDispatcher { contract_address };
+    assert(multisig.get_owners().len() == 2, 'owners not updated');
+    assert(multisig.get_threshold() == 1, 'threshold not updated');
+    assert(!dispatcher.is_valid_outside_execution_nonce(42), 'nonce should be consumed');
+}
+
+#[test]
+#[should_panic(expected: 'SRC9: invalid signature')]
+fn test_execute_from_outside_rejects_insufficient_signatures() {
+    let (contract_address, kp0, _) = deploy_3of2();
+    start_cheat_block_timestamp(contract_address, 1000);
+
+    let new_owners = array![keypair(7).public_key].span();
+    let (outside_execution, msg_hash) = set_owners_outside_execution(
+        contract_address, new_owners, 1, 42,
+    );
+    // Only 1 of the required 2 owners.
+    let signature = sign_bundle(array![(0, kp0)].span(), msg_hash);
+
+    ISRC9_V2Dispatcher { contract_address }
+        .execute_from_outside_v2(outside_execution, signature.span());
+}
+
+#[test]
+#[should_panic(expected: 'SRC9: duplicated nonce')]
+fn test_execute_from_outside_rejects_replayed_nonce() {
+    let (contract_address, kp0, kp1) = deploy_3of2();
+    start_cheat_block_timestamp(contract_address, 1000);
+
+    // Re-point the account at the same owner set/threshold so the second submission fails
+    // on the nonce rather than on a now-stale signer set.
+    let owners = array![kp0.public_key, kp1.public_key, keypair(3).public_key].span();
+    let (outside_execution, msg_hash) = set_owners_outside_execution(
+        contract_address, owners, 2, 42,
+    );
+    let signature = sign_bundle(array![(0, kp0), (1, kp1)].span(), msg_hash);
+
+    let dispatcher = ISRC9_V2Dispatcher { contract_address };
+    dispatcher.execute_from_outside_v2(outside_execution, signature.span());
+    dispatcher.execute_from_outside_v2(outside_execution, signature.span());
 }

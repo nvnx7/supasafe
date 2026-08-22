@@ -19,10 +19,29 @@ pub trait IMultisig<TState> {
     fn set_owners(ref self: TState, owners: Span<felt252>, threshold: u32);
 }
 
+/// Protocol-invoked validation for `DEPLOY_ACCOUNT` and `DECLARE` transactions.
+///
+/// `__validate_deploy__` receives the constructor calldata spread after `class_hash` and
+/// `contract_address_salt`, so its tail must mirror this account's constructor
+/// (`owners`, `threshold`). OpenZeppelin's `IDeployable` is typed for a single-key account
+/// (`public_key: felt252`) and therefore cannot be reused here.
+#[starknet::interface]
+pub trait IDeployable<TState> {
+    fn __validate_deploy__(
+        self: @TState,
+        class_hash: felt252,
+        contract_address_salt: felt252,
+        owners: Span<felt252>,
+        threshold: u32,
+    ) -> felt252;
+    fn __validate_declare__(self: @TState, class_hash: felt252) -> felt252;
+}
+
 #[starknet::contract(account)]
 mod PrivateMultisigAccount {
     use core::ecdsa::check_ecdsa_signature;
     use core::num::traits::Zero;
+    use openzeppelin::account::extensions::SRC9Component;
     use openzeppelin::interfaces::accounts::{ISRC6, ISRC6_ID};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin::introspection::src5::SRC5Component::InternalTrait as SRC5InternalTrait;
@@ -34,17 +53,30 @@ mod PrivateMultisigAccount {
     };
     use starknet::{get_caller_address, get_contract_address, get_tx_info, VALIDATED};
     use crate::hashing::compute_call_set_hash;
-    use super::{ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidation, IMultisig};
+    use super::{
+        ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidation, IDeployable, IMultisig,
+    };
 
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
+    component!(path: SRC9Component, storage: src9, event: SRC9Event);
 
     #[abi(embed_v0)]
     impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
+
+    /// SNIP-9 outside execution. The component is account-agnostic: it verifies the SNIP-12
+    /// `OutsideExecution` hash against this contract's own `is_valid_signature`, so the t-of-n
+    /// threshold applies to relayed executions exactly as it does to direct ones.
+    #[abi(embed_v0)]
+    impl OutsideExecutionV2Impl =
+        SRC9Component::OutsideExecutionV2Impl<ContractState>;
+    impl OutsideExecutionInternalImpl = SRC9Component::InternalImpl<ContractState>;
 
     #[storage]
     struct Storage {
         #[substorage(v0)]
         src5: SRC5Component::Storage,
+        #[substorage(v0)]
+        src9: SRC9Component::Storage,
         owners: Map<u32, felt252>,
         owners_count: u32,
         threshold: u32,
@@ -55,6 +87,8 @@ mod PrivateMultisigAccount {
     enum Event {
         #[flat]
         SRC5Event: SRC5Component::Event,
+        #[flat]
+        SRC9Event: SRC9Component::Event,
     }
 
     #[constructor]
@@ -62,6 +96,28 @@ mod PrivateMultisigAccount {
         self._set_owners(owners, threshold);
         self.src5.register_interface(ISRC6_ID);
         self.src5.register_interface(ICUSTOM_SIGNATURE_VALIDATION_ID);
+        // Registers ISRC9_V2_ID — paymasters require it to relay for this account.
+        self.src9.initializer();
+    }
+
+    #[abi(embed_v0)]
+    impl DeployableImpl of IDeployable<ContractState> {
+        /// Validates the `DEPLOY_ACCOUNT` transaction that deploys this account. The constructor
+        /// has already run by this point, so the owner set and threshold are readable from
+        /// storage and the deploying signature is held to the same t-of-n rule.
+        fn __validate_deploy__(
+            self: @ContractState,
+            class_hash: felt252,
+            contract_address_salt: felt252,
+            owners: Span<felt252>,
+            threshold: u32,
+        ) -> felt252 {
+            self._validate_tx()
+        }
+
+        fn __validate_declare__(self: @ContractState, class_hash: felt252) -> felt252 {
+            self._validate_tx()
+        }
     }
 
     #[abi(embed_v0)]
@@ -89,12 +145,7 @@ mod PrivateMultisigAccount {
     #[abi(embed_v0)]
     impl ISRC6Impl of ISRC6<ContractState> {
         fn __validate__(self: @ContractState, calls: Array<Call>) -> felt252 {
-            let tx_info = get_tx_info().unbox();
-            assert(
-                self._verify_threshold(tx_info.transaction_hash, tx_info.signature),
-                'INVALID_SIGNATURE',
-            );
-            VALIDATED
+            self._validate_tx()
         }
 
         fn __execute__(self: @ContractState, calls: Array<Call>) {
@@ -145,6 +196,17 @@ mod PrivateMultisigAccount {
     impl InternalImpl of InternalTrait {
         fn assert_only_self(self: @ContractState) {
             assert(get_caller_address() == get_contract_address(), 'UNAUTHORIZED');
+        }
+
+        /// Shared protocol-level validation for `__validate__`, `__validate_deploy__` and
+        /// `__validate_declare__`: the transaction hash must carry a t-of-n owner quorum.
+        fn _validate_tx(self: @ContractState) -> felt252 {
+            let tx_info = get_tx_info().unbox();
+            assert(
+                self._verify_threshold(tx_info.transaction_hash, tx_info.signature),
+                'INVALID_SIGNATURE',
+            );
+            VALIDATED
         }
 
         fn _set_owners(ref self: ContractState, owners: Span<felt252>, threshold: u32) {
