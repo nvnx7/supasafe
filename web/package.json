@@ -11,6 +11,7 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@starknet-io/get-starknet-ui": "^5.0.0",
     "@starknet-start/chains": "^1.0.7",
     "@starknet-start/providers": "^1.0.7",
     "@starknet-start/react": "^1.0.8",
