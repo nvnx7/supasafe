@@ -35,5 +35,16 @@
       "quoteStyle": "double",
       "semicolons": "always"
     }
-  }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/components/ui/**"],
+      "linter": { "enabled": false }
+    }
+  ]
 }
