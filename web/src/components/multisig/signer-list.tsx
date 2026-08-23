@@ -33,15 +33,20 @@ export function SignerList() {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {owners.map((owner, index) => (
-          <div key={owner} className="flex flex-col gap-3">
+          <div key={owner.address} className="flex flex-col gap-3">
             {index > 0 ? <Separator /> : null}
             <div className="flex items-center justify-between gap-4">
               <span className="text-sm text-muted-foreground">
                 Owner {index}
               </span>
-              <span className="truncate font-mono text-sm">
-                {truncateAddress(owner, 10)}
-              </span>
+              <div className="flex flex-col items-end gap-0.5 overflow-hidden">
+                <span className="truncate font-mono text-sm">
+                  {truncateAddress(owner.address, 10)}
+                </span>
+                <span className="truncate font-mono text-xs text-muted-foreground">
+                  key {truncateAddress(owner.publicKey, 6)}
+                </span>
+              </div>
             </div>
           </div>
         ))}

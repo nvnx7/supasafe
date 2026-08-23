@@ -9,7 +9,7 @@ import type { MultisigSummary } from "@/lib/multisig";
 const OWNER_UPDATED_KEY = hash.getSelectorFromName("OwnerUpdated");
 const CHUNK_SIZE = 100;
 
-async function readOwners(
+async function readOwnerAddresses(
   provider: ProviderInterface,
   contractAddress: string,
 ): Promise<string[] | null> {
@@ -19,7 +19,13 @@ async function readOwners(
       entrypoint: "get_owners",
       calldata: [],
     });
-    return result.slice(1, 1 + Number(result[0]));
+    // Span<Owner> flattens to [len, address, public_key, ...]; membership is by address.
+    const count = Number(result[0]);
+    const addresses: string[] = [];
+    for (let i = 0; i < count; i += 1) {
+      addresses.push(result[1 + i * 2] as string);
+    }
+    return addresses;
   } catch {
     return null;
   }
@@ -46,8 +52,9 @@ export async function getMultisigs(
     });
 
     // Oldest first, so a later configuration overwrites an earlier one.
+    // OwnerUpdated data is [public_key, owners_count, threshold]; the owner is a key, not data.
     for (const event of page.events) {
-      const threshold = Number(event.data[1]);
+      const threshold = Number(event.data[2]);
       if (Number.isInteger(threshold)) {
         thresholds.set(num.toHex(event.from_address), threshold);
       }
@@ -62,11 +69,11 @@ export async function getMultisigs(
     [...thresholds].map(async ([address, threshold]) => {
       const [actualClassHash, owners] = await Promise.all([
         provider.getClassHashAt(address).catch(() => null),
-        readOwners(provider, address),
+        readOwnerAddresses(provider, address),
       ]);
       if (!actualClassHash || BigInt(actualClassHash) !== classHash)
         return null;
-      if (!owners?.some((key) => BigInt(key) === target)) return null;
+      if (!owners?.some((owner) => BigInt(owner) === target)) return null;
       return { address, threshold, ownerCount: owners.length };
     }),
   );

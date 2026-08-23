@@ -23,9 +23,12 @@ export async function getMultisig(
     }),
   ]);
 
-  const owners = ownersResult
-    .slice(1, 1 + Number(ownersResult[0]))
-    .map((owner) => num.toHex(owner));
+  // Span<Owner> flattens to [len, address, public_key, ...].
+  const count = Number(ownersResult[0]);
+  const owners = Array.from({ length: count }, (_, i) => ({
+    address: num.toHex(ownersResult[1 + i * 2] as string),
+    publicKey: num.toHex(ownersResult[2 + i * 2] as string),
+  }));
 
   return { address, owners, threshold: Number(thresholdResult[0]) };
 }

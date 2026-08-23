@@ -6,21 +6,29 @@ import {
 } from "@starknet-start/react";
 import { CallData, hash, stark } from "starknet";
 import { networkConfig } from "@/config/network";
+import type { Owner } from "@/lib/multisig";
 
 export type CreateMultisigParams = {
-  owners: string[];
+  owners: Owner[];
   threshold: number;
   salt?: bigint;
 };
 
 // The UDC deploys from address zero, so this is the address that lands on-chain.
 export function buildMultisigDeployment(
-  owners: string[],
+  owners: Owner[],
   threshold: number,
   salt: bigint,
 ) {
   const classHash = networkConfig.multisigClassHash;
-  const constructorCalldata = CallData.compile({ owners, threshold });
+  // `Span<Owner>` serializes as length followed by each struct's fields in declaration order.
+  const constructorCalldata = CallData.compile({
+    owners: owners.map(({ address, publicKey }) => ({
+      address,
+      public_key: publicKey,
+    })),
+    threshold,
+  });
 
   return {
     classHash,

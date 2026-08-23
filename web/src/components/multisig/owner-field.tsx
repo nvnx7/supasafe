@@ -9,30 +9,40 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { truncateAddress } from "@/lib/multisig";
 
-interface OwnerKeyFieldProps {
+interface OwnerFieldProps {
   index: number;
   value: string;
   error?: string | undefined;
   removable: boolean;
   readOnly?: boolean;
-  description?: string;
+  hint?: string;
+  /// Read off the owner's deployed account; the multisig verifies signatures against it.
+  publicKey?: string | undefined;
+  resolving?: boolean;
+  resolveError?: string | undefined;
   onChange: (value: string) => void;
   onRemove: () => void;
 }
 
-export function OwnerKeyField({
+export function OwnerField({
   index,
   value,
   error,
   removable,
   readOnly,
-  description,
+  hint,
+  publicKey,
+  resolving,
+  resolveError,
   onChange,
   onRemove,
-}: OwnerKeyFieldProps) {
+}: OwnerFieldProps) {
   const id = `owner-${index}`;
-  const invalid = Boolean(error);
+  const message = error ?? resolveError;
+  const invalid = Boolean(message);
 
   return (
     <Field data-invalid={invalid || undefined}>
@@ -60,8 +70,21 @@ export function OwnerKeyField({
           <Trash2Icon />
         </Button>
       </div>
-      {description ? <FieldDescription>{description}</FieldDescription> : null}
-      {error ? <FieldError>{error}</FieldError> : null}
+
+      {resolving ? (
+        <FieldDescription>
+          <Spinner data-icon="inline-start" />
+          Reading signing key from account…
+        </FieldDescription>
+      ) : publicKey ? (
+        <FieldDescription className="font-mono">
+          Signing key {truncateAddress(publicKey, 8)}
+        </FieldDescription>
+      ) : hint ? (
+        <FieldDescription>{hint}</FieldDescription>
+      ) : null}
+
+      {message ? <FieldError>{message}</FieldError> : null}
     </Field>
   );
 }

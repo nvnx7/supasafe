@@ -1,7 +1,15 @@
+/// An owner's account address paired with the key that account signs with, mirroring the
+/// Cairo `Owner` struct. The key is what the contract verifies against; the address is what
+/// forms the SNIP-12 message a wallet signs.
+export interface Owner {
+  address: string;
+  publicKey: string;
+}
+
 export interface MultisigDetail {
   address: string;
-  // Owner STARK public keys, in the order the contract stores them.
-  owners: string[];
+  // In the order the contract stores them; index is what a signature bundle refers to.
+  owners: Owner[];
   threshold: number;
 }
 
@@ -68,8 +76,8 @@ export function validateMultisigDraft(
 
   const owners = draft.owners.map((key, index) => {
     const trimmed = key.trim();
-    if (trimmed.length === 0) return "Enter a public key.";
-    if (!isValidOwnerKey(trimmed)) return "Must be a non-zero hex felt.";
+    if (trimmed.length === 0) return "Enter an account address.";
+    if (!isValidOwnerKey(trimmed)) return "Must be a non-zero hex address.";
     if (normalized.indexOf(normalized[index] as string) !== index) {
       return "Duplicate owner.";
     }
