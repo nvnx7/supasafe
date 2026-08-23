@@ -2,7 +2,12 @@
 
 import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 interface OwnerKeyFieldProps {
@@ -10,6 +15,8 @@ interface OwnerKeyFieldProps {
   value: string;
   error?: string | undefined;
   removable: boolean;
+  readOnly?: boolean;
+  description?: string;
   onChange: (value: string) => void;
   onRemove: () => void;
 }
@@ -19,6 +26,8 @@ export function OwnerKeyField({
   value,
   error,
   removable,
+  readOnly,
+  description,
   onChange,
   onRemove,
 }: OwnerKeyFieldProps) {
@@ -36,6 +45,7 @@ export function OwnerKeyField({
           placeholder="0x…"
           spellCheck={false}
           autoComplete="off"
+          readOnly={readOnly}
           aria-invalid={invalid || undefined}
           className="font-mono"
         />
@@ -50,6 +60,7 @@ export function OwnerKeyField({
           <Trash2Icon />
         </Button>
       </div>
+      {description ? <FieldDescription>{description}</FieldDescription> : null}
       {error ? <FieldError>{error}</FieldError> : null}
     </Field>
   );
