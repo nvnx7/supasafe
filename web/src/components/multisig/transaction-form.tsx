@@ -1,5 +1,6 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { TOKENS } from "@/config/constants";
-import { useMultisig } from "@/hooks/use-multisig";
 import { useProposeTransaction } from "@/hooks/use-propose-transaction";
 import {
   isValidAddress,
@@ -59,7 +59,7 @@ const TOKEN_ITEMS = TOKENS.map((token) => ({
 
 export function TransactionForm({ kind }: { kind: TransactionKind }) {
   const { needsRecipient, cta, hint, recipientLabel } = KINDS[kind];
-  const { address } = useMultisig();
+  const { multisigAddress: address } = useParams<{ multisigAddress: string }>();
   const { propose, isPending, error } = useProposeTransaction();
 
   const [token, setToken] = useState(TOKENS[0]?.address ?? "");

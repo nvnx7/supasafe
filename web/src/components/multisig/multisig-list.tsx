@@ -1,6 +1,8 @@
 "use client";
 
-import { ShieldIcon, WalletIcon } from "lucide-react";
+import { useAccount } from "@starknet-start/react";
+import { ShieldIcon, TriangleAlertIcon, WalletIcon } from "lucide-react";
+import { useGetMultisigs } from "@/api/multisig";
 import { CreateMultisigButton } from "@/components/multisig/create-multisig-button";
 import { MultisigCard } from "@/components/multisig/multisig-card";
 import {
@@ -12,12 +14,12 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMultisigs } from "@/hooks/use-multisigs";
 
 export function MultisigList() {
-  const { isConnected, multisigs, isLoading } = useMultisigs();
+  const { address } = useAccount();
+  const { data: multisigs = [], isLoading, error } = useGetMultisigs(address);
 
-  if (!isConnected) {
+  if (!address) {
     return (
       <Empty>
         <EmptyHeader>
@@ -39,6 +41,20 @@ export function MultisigList() {
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <TriangleAlertIcon />
+          </EmptyMedia>
+          <EmptyTitle>Could not load multisigs</EmptyTitle>
+          <EmptyDescription>{error.message}</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 

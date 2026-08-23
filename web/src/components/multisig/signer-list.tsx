@@ -1,5 +1,7 @@
 "use client";
 
+import { useParams } from "next/navigation";
+import { useGetMultisig } from "@/api/multisig";
 import {
   Card,
   CardContent,
@@ -9,11 +11,11 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMultisig } from "@/hooks/use-multisig";
 import { truncateAddress } from "@/lib/multisig";
 
 export function SignerList() {
-  const { multisig, isLoading } = useMultisig();
+  const { multisigAddress } = useParams<{ multisigAddress: string }>();
+  const { data: multisig, isLoading } = useGetMultisig(multisigAddress);
 
   if (isLoading || !multisig) {
     return <Skeleton className="h-48 w-full" />;

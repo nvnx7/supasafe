@@ -1,5 +1,7 @@
 "use client";
 
+import { useParams } from "next/navigation";
+import { useGetMultisig } from "@/api/multisig";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -10,11 +12,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMultisig } from "@/hooks/use-multisig";
 import { truncateAddress } from "@/lib/multisig";
 
 export function MultisigOverview() {
-  const { multisig, isLoading } = useMultisig();
+  const { multisigAddress } = useParams<{ multisigAddress: string }>();
+  const { data: multisig, isLoading } = useGetMultisig(multisigAddress);
 
   if (isLoading || !multisig) {
     return <Skeleton className="h-32 w-full" />;
