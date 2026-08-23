@@ -12,7 +12,7 @@ export const DEVNET_CHAIN_ID = "0x4445564e4554"; // "DEVNET" in hex
 
 export type NetworkConfig = {
   rpcUrl: string;
-  chainId: string; 
+  chainId: string;
   privacyPoolAddress: string;
   multisigClassHash: string;
 };

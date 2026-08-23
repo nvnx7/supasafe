@@ -8,4 +8,3 @@ export const isSepolia = network === "sepolia";
 
 export const rpcUrlDevnet = process.env.NEXT_PUBLIC_RPC_URL_DEVNET as string;
 export const rpcUrlSepolia = process.env.NEXT_PUBLIC_RPC_URL_SEPOLIA as string;
-
