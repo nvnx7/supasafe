@@ -54,3 +54,71 @@ pub fn compute_call_set_hash(
         .update_with(struct_hash)
         .finalize()
 }
+
+const MULTISIG_APPROVAL_SNIP12_NAME: felt252 = 'SuperSafe';
+const MULTISIG_APPROVAL_SNIP12_VERSION: felt252 = 1;
+
+const MULTISIG_APPROVAL_TYPE_HASH: felt252 = selector!(
+    "\"MultisigApproval\"(\"Multisig\":\"ContractAddress\",\"Hash\":\"felt\")",
+);
+
+#[derive(Drop)]
+struct MultisigApproval {
+    multisig: ContractAddress,
+    hash: felt252,
+}
+
+impl MultisigApprovalStructHashImpl of StructHash<MultisigApproval> {
+    fn hash_struct(self: @MultisigApproval) -> felt252 {
+        let multisig: felt252 = (*self.multisig).into();
+        PoseidonTrait::new()
+            .update_with(MULTISIG_APPROVAL_TYPE_HASH)
+            .update_with(multisig)
+            .update_with(*self.hash)
+            .finalize()
+    }
+}
+
+/// The parts of an owner approval message that every owner of one multisig shares, hashed once
+/// so the verification loop pays for them a single time rather than per signature.
+#[derive(Copy, Drop)]
+pub struct ApprovalContext {
+    domain_hash: felt252,
+    struct_hash: felt252,
+}
+
+pub fn approval_context(multisig: ContractAddress, msg_hash: felt252) -> ApprovalContext {
+    let domain = StarknetDomain {
+        name: MULTISIG_APPROVAL_SNIP12_NAME,
+        version: MULTISIG_APPROVAL_SNIP12_VERSION,
+        chain_id: get_tx_info().unbox().chain_id,
+        revision: 1,
+    };
+    ApprovalContext {
+        domain_hash: domain.hash_struct(),
+        struct_hash: MultisigApproval { multisig, hash: msg_hash }.hash_struct(),
+    }
+}
+
+/// Completes the SNIP-12 message a single owner signs.
+///
+/// `owner` is that owner's own account address, because a wallet signing typed data binds the
+/// message to the account doing the signing — it cannot produce a hash bound to the multisig.
+/// The multisig address is instead carried inside the struct, so an approval of `msg_hash` on
+/// one multisig cannot be replayed on another the same owner belongs to.
+pub fn owner_approval_hash(ctx: ApprovalContext, owner: ContractAddress) -> felt252 {
+    let owner_felt: felt252 = owner.into();
+    PoseidonTrait::new()
+        .update_with('StarkNet Message')
+        .update_with(ctx.domain_hash)
+        .update_with(owner_felt)
+        .update_with(ctx.struct_hash)
+        .finalize()
+}
+
+/// One-shot form for callers outside the verification loop.
+pub fn compute_owner_approval_hash(
+    multisig: ContractAddress, owner: ContractAddress, msg_hash: felt252,
+) -> felt252 {
+    owner_approval_hash(approval_context(multisig, msg_hash), owner)
+}

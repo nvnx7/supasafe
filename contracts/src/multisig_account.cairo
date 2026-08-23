@@ -1,4 +1,22 @@
+use starknet::ContractAddress;
 use starknet::account::Call;
+
+/// An owner's account address paired with the STARK public key that account signs with.
+///
+/// Both are load-bearing. A wallet signing SNIP-12 typed data binds the message to the account
+/// doing the signing, so the address is what forms an owner's approval message; the public key
+/// is what verifies it. Verifying by key rather than by dispatching `is_valid_signature` keeps
+/// `_verify_threshold` free of cross-contract calls, which the validation phase forbids — that
+/// is what lets this account still send its own transactions.
+///
+/// The key is therefore the authority and the address is metadata: this contract cannot cheaply
+/// prove the two belong together, so callers are responsible for reading an owner's key from
+/// their deployed account rather than asserting it.
+#[derive(Copy, Drop, Serde, starknet::Store)]
+pub struct Owner {
+    pub address: ContractAddress,
+    pub public_key: felt252,
+}
 
 /// SRC5 interface id for `ICustomSignatureValidation::is_custom_signature_valid`.
 /// Matches `selector!("is_custom_signature_valid")` as checked by the STRK20 privacy pool
@@ -14,9 +32,9 @@ pub trait ICustomSignatureValidation<TState> {
 
 #[starknet::interface]
 pub trait IMultisig<TState> {
-    fn get_owners(self: @TState) -> Span<felt252>;
+    fn get_owners(self: @TState) -> Span<Owner>;
     fn get_threshold(self: @TState) -> u32;
-    fn set_owners(ref self: TState, owners: Span<felt252>, threshold: u32);
+    fn set_owners(ref self: TState, owners: Span<Owner>, threshold: u32);
 }
 
 /// Protocol-invoked validation for `DEPLOY_ACCOUNT` and `DECLARE` transactions.
@@ -31,7 +49,7 @@ pub trait IDeployable<TState> {
         self: @TState,
         class_hash: felt252,
         contract_address_salt: felt252,
-        owners: Span<felt252>,
+        owners: Span<Owner>,
         threshold: u32,
     ) -> felt252;
     fn __validate_declare__(self: @TState, class_hash: felt252) -> felt252;
@@ -51,10 +69,12 @@ pub mod PrivateMultisigAccount {
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
         StoragePointerWriteAccess,
     };
-    use starknet::{get_caller_address, get_contract_address, get_tx_info, VALIDATED};
-    use crate::hashing::compute_call_set_hash;
+    use starknet::{
+        ContractAddress, get_caller_address, get_contract_address, get_tx_info, VALIDATED,
+    };
+    use crate::hashing::{approval_context, compute_call_set_hash, owner_approval_hash};
     use super::{
-        ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidation, IDeployable, IMultisig,
+        ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidation, IDeployable, IMultisig, Owner,
     };
 
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
@@ -77,7 +97,7 @@ pub mod PrivateMultisigAccount {
         src5: SRC5Component::Storage,
         #[substorage(v0)]
         src9: SRC9Component::Storage,
-        owners: Map<u32, felt252>,
+        owners: Map<u32, Owner>,
         owners_count: u32,
         threshold: u32,
     }
@@ -90,7 +110,8 @@ pub mod PrivateMultisigAccount {
     #[derive(Drop, starknet::Event)]
     pub struct OwnerUpdated {
         #[key]
-        pub owner: felt252,
+        pub owner: ContractAddress,
+        pub public_key: felt252,
         pub owners_count: u32,
         pub threshold: u32,
     }
@@ -106,7 +127,7 @@ pub mod PrivateMultisigAccount {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, owners: Span<felt252>, threshold: u32) {
+    fn constructor(ref self: ContractState, owners: Span<Owner>, threshold: u32) {
         self._set_owners(owners, threshold);
         self.src5.register_interface(ISRC6_ID);
         self.src5.register_interface(ICUSTOM_SIGNATURE_VALIDATION_ID);
@@ -123,7 +144,7 @@ pub mod PrivateMultisigAccount {
             self: @ContractState,
             class_hash: felt252,
             contract_address_salt: felt252,
-            owners: Span<felt252>,
+            owners: Span<Owner>,
             threshold: u32,
         ) -> felt252 {
             self._validate_tx()
@@ -182,7 +203,7 @@ pub mod PrivateMultisigAccount {
 
     #[abi(embed_v0)]
     impl MultisigImpl of IMultisig<ContractState> {
-        fn get_owners(self: @ContractState) -> Span<felt252> {
+        fn get_owners(self: @ContractState) -> Span<Owner> {
             let count = self.owners_count.read();
             let mut owners = array![];
             let mut i: u32 = 0;
@@ -200,7 +221,7 @@ pub mod PrivateMultisigAccount {
         /// Replaces the owner set/threshold atomically. Self-authorized only: reachable exclusively
         /// via a `calls` entry inside a transaction that already satisfied this multisig's own
         /// t-of-n check in `__validate__`/`is_custom_signature_valid`.
-        fn set_owners(ref self: ContractState, owners: Span<felt252>, threshold: u32) {
+        fn set_owners(ref self: ContractState, owners: Span<Owner>, threshold: u32) {
             self.assert_only_self();
             self._set_owners(owners, threshold);
         }
@@ -223,7 +244,7 @@ pub mod PrivateMultisigAccount {
             VALIDATED
         }
 
-        fn _set_owners(ref self: ContractState, owners: Span<felt252>, threshold: u32) {
+        fn _set_owners(ref self: ContractState, owners: Span<Owner>, threshold: u32) {
             let new_count = owners.len();
             assert(new_count > 0, 'ZERO_OWNERS');
             assert(threshold > 0, 'ZERO_THRESHOLD');
@@ -232,10 +253,15 @@ pub mod PrivateMultisigAccount {
             let mut i: u32 = 0;
             while i < new_count {
                 let owner = *owners.at(i);
-                assert(owner.is_non_zero(), 'ZERO_OWNER_KEY');
+                assert(owner.address.is_non_zero(), 'ZERO_OWNER_ADDRESS');
+                assert(owner.public_key.is_non_zero(), 'ZERO_OWNER_KEY');
                 let mut j: u32 = 0;
                 while j < i {
-                    assert(self.owners.read(j) != owner, 'DUPLICATE_OWNER_KEY');
+                    let other = *owners.at(j);
+                    assert(other.address != owner.address, 'DUPLICATE_OWNER_ADDRESS');
+                    // Distinct slots sharing a key would let one signer satisfy the threshold
+                    // twice, since strictly-increasing indices only stop a slot being reused.
+                    assert(other.public_key != owner.public_key, 'DUPLICATE_OWNER_KEY');
                     j += 1;
                 };
                 self.owners.write(i, owner);
@@ -245,7 +271,7 @@ pub mod PrivateMultisigAccount {
             let old_count = self.owners_count.read();
             let mut k = new_count;
             while k < old_count {
-                self.owners.write(k, 0);
+                self.owners.write(k, Owner { address: Zero::zero(), public_key: 0 });
                 k += 1;
             };
 
@@ -254,13 +280,25 @@ pub mod PrivateMultisigAccount {
 
             let mut i: u32 = 0;
             while i < new_count {
-                self.emit(OwnerUpdated { owner: *owners.at(i), owners_count: new_count, threshold });
+                let owner = *owners.at(i);
+                self.emit(
+                    OwnerUpdated {
+                        owner: owner.address,
+                        public_key: owner.public_key,
+                        owners_count: new_count,
+                        threshold,
+                    },
+                );
                 i += 1;
             };
         }
 
         /// Verifies that at least `threshold` of the encoded signatures are valid STARK-curve
-        /// ECDSA signatures over `msg_hash` by distinct, in-range owners.
+        /// ECDSA signatures by distinct, in-range owners.
+        ///
+        /// Each owner signs a SNIP-12 `MultisigApproval` message wrapping `msg_hash`, bound to
+        /// that owner's own account address — the form a browser wallet produces. The shared
+        /// domain and struct hashes are computed once, outside the loop.
         ///
         /// Signature encoding: `[sig_count, owner_index_0, r_0, s_0, ..., owner_index_{k-1},
         /// r_{k-1}, s_{k-1}]`. Owner indices must be strictly increasing (rejects duplicate-signer
@@ -277,6 +315,7 @@ pub mod PrivateMultisigAccount {
 
             let threshold = self.threshold.read();
             let owners_count = self.owners_count.read();
+            let ctx = approval_context(get_contract_address(), msg_hash);
 
             let mut prev_index: Option<u32> = Option::None;
             let mut valid_count: u32 = 0;
@@ -295,8 +334,9 @@ pub mod PrivateMultisigAccount {
                 }
                 prev_index = Option::Some(owner_index);
 
-                let pubkey = self.owners.read(owner_index);
-                if check_ecdsa_signature(msg_hash, pubkey, r, s) {
+                let owner = self.owners.read(owner_index);
+                let owner_msg = owner_approval_hash(ctx, owner.address);
+                if check_ecdsa_signature(owner_msg, owner.public_key, r, s) {
                     valid_count += 1;
                 }
                 i += 1;
