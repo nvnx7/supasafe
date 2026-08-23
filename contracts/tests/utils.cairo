@@ -6,19 +6,47 @@ use snforge_std::signature::stark_curve::{
 use snforge_std::{ContractClassTrait, DeclareResultTrait, declare};
 use starknet::ContractAddress;
 use starknet::account::Call;
+use supersafe::hashing::compute_owner_approval_hash;
+use supersafe::multisig_account::Owner;
 
 pub fn keypair(secret: felt252) -> StarkCurveKeyPair {
     StarkCurveKeyPairImpl::from_secret_key(secret)
 }
 
-/// Packs owner signatures over `msg_hash` into this account's bundle encoding:
-/// `[sig_count, owner_index_0, r_0, s_0, ...]`. Callers must pass owners in strictly
-/// increasing index order — the contract rejects anything else as malformed.
-pub fn sign_bundle(signers: Span<(u32, StarkCurveKeyPair)>, msg_hash: felt252) -> Array<felt252> {
+/// A test owner's account address. Deliberately unrelated to its key, so no test can pass by
+/// accidentally relying on a relationship the contract does not enforce.
+pub fn owner_address(secret: felt252) -> ContractAddress {
+    (secret + 0x8000).try_into().unwrap()
+}
+
+/// The deterministic owner derived from `secret`, signed for by `keypair(secret)`.
+pub fn owner_of(secret: felt252) -> Owner {
+    Owner { address: owner_address(secret), public_key: keypair(secret).public_key }
+}
+
+pub fn owners_of(secrets: Span<felt252>) -> Span<Owner> {
+    let mut owners = array![];
+    for secret in secrets {
+        owners.append(owner_of(*secret));
+    }
+    owners.span()
+}
+
+/// Packs owner signatures into this account's bundle encoding:
+/// `[sig_count, owner_index_0, r_0, s_0, ...]`.
+///
+/// `signers` are `(owner_index, secret)` pairs and must be in strictly increasing index order —
+/// the contract rejects anything else as malformed. Each secret signs the SNIP-12
+/// `MultisigApproval` message wrapping `msg_hash` and bound to that owner's own address, which
+/// is the form a wallet produces and the only form `_verify_threshold` accepts.
+pub fn sign_bundle(
+    multisig: ContractAddress, signers: Span<(u32, felt252)>, msg_hash: felt252,
+) -> Array<felt252> {
     let mut signature = array![signers.len().into()];
     for signer in signers {
-        let (owner_index, kp) = *signer;
-        let (r, s) = kp.sign(msg_hash).unwrap();
+        let (owner_index, secret) = *signer;
+        let owner_msg = compute_owner_approval_hash(multisig, owner_address(secret), msg_hash);
+        let (r, s) = keypair(secret).sign(owner_msg).unwrap();
         signature.append(owner_index.into());
         signature.append(r);
         signature.append(s);
@@ -26,13 +54,21 @@ pub fn sign_bundle(signers: Span<(u32, StarkCurveKeyPair)>, msg_hash: felt252) -
     signature
 }
 
-pub fn deploy_multisig(owners: Span<felt252>, threshold: u32) -> ContractAddress {
+/// One owner's `(r, s)` over the approval message, for tests that assemble a bundle by hand.
+pub fn sign_as(
+    multisig: ContractAddress, secret: felt252, msg_hash: felt252,
+) -> (felt252, felt252) {
+    let owner_msg = compute_owner_approval_hash(multisig, owner_address(secret), msg_hash);
+    keypair(secret).sign(owner_msg).unwrap()
+}
+
+pub fn deploy_multisig(owners: Span<Owner>, threshold: u32) -> ContractAddress {
     let (contract_address, _) = try_deploy_multisig(owners, threshold).unwrap();
     contract_address
 }
 
 pub fn try_deploy_multisig(
-    owners: Span<felt252>, threshold: u32,
+    owners: Span<Owner>, threshold: u32,
 ) -> Result<(ContractAddress, Span<felt252>), Array<felt252>> {
     let contract = declare("PrivateMultisigAccount").unwrap().contract_class();
     let mut calldata = array![];
@@ -41,7 +77,7 @@ pub fn try_deploy_multisig(
     contract.deploy(@calldata)
 }
 
-pub fn assert_deploy_fails_with(owners: Span<felt252>, threshold: u32, expected: felt252) {
+pub fn assert_deploy_fails_with(owners: Span<Owner>, threshold: u32, expected: felt252) {
     match try_deploy_multisig(owners, threshold) {
         Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
         Result::Err(panic_data) => assert(*panic_data.at(0) == expected, *panic_data.at(0)),
