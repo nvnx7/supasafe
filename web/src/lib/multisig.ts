@@ -25,11 +25,16 @@ export interface MultisigDraftErrors {
 
 export type TransactionKind = "deposit" | "withdraw" | "transfer";
 
-// A felt252 is 252 bits, so at most 63 hex digits.
-const OWNER_KEY_PATTERN = /^0x[0-9a-fA-F]{1,63}$/;
+// A felt252 needs 63 hex digits, but addresses are conventionally zero-padded
+// to 64, so the range has to be checked by value rather than by digit count.
+const HEX_PATTERN = /^0x[0-9a-fA-F]{1,64}$/;
+const FELT_PRIME = 2n ** 251n + 17n * 2n ** 192n + 1n;
 
 export function isValidOwnerKey(key: string): boolean {
-  return OWNER_KEY_PATTERN.test(key.trim()) && BigInt(key.trim()) !== 0n;
+  const trimmed = key.trim();
+  if (!HEX_PATTERN.test(trimmed)) return false;
+  const value = BigInt(trimmed);
+  return value !== 0n && value < FELT_PRIME;
 }
 
 export function isValidAmount(value: string): boolean {
@@ -53,7 +58,13 @@ export function truncateAddress(address: string, visible = 6): string {
 export function validateMultisigDraft(
   draft: MultisigDraft,
 ): MultisigDraftErrors {
-  const normalized = draft.owners.map((key) => key.trim().toLowerCase());
+  // Compared by value, so a padded address and its bare form count as one owner.
+  const normalized = draft.owners.map((key) => {
+    const trimmed = key.trim();
+    return isValidOwnerKey(trimmed)
+      ? BigInt(trimmed).toString()
+      : trimmed.toLowerCase();
+  });
 
   const owners = draft.owners.map((key, index) => {
     const trimmed = key.trim();
