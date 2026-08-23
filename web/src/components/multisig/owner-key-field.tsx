@@ -9,13 +9,11 @@ interface OwnerKeyFieldProps {
   index: number;
   value: string;
   error?: string | undefined;
-  /** Whether removal is offered; the last remaining owner cannot be removed. */
   removable: boolean;
   onChange: (value: string) => void;
   onRemove: () => void;
 }
 
-/** One owner public key row, with inline validation and a remove control. */
 export function OwnerKeyField({
   index,
   value,

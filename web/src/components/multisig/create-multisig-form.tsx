@@ -23,12 +23,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { useCreateMultisig } from "@/hooks/use-create-multisig";
 import { isDraftValid, validateMultisigDraft } from "@/lib/multisig";
 
-/**
- * Configures and deploys a new multisig.
- *
- * Owns the whole draft — owner keys, threshold, validation and submission — so
- * the page only has to place it.
- */
 export function CreateMultisigForm() {
   const [owners, setOwners] = useState<string[]>([""]);
   const [threshold, setThreshold] = useState(1);
@@ -39,8 +33,6 @@ export function CreateMultisigForm() {
   const effectiveThreshold = Math.min(threshold, owners.length);
   const draft = { owners, threshold: effectiveThreshold };
 
-  // Cheap enough to redo each render, and memoizing on `draft` would be a no-op
-  // anyway since the object is rebuilt every time.
   const errors = validateMultisigDraft(draft);
   const valid = isDraftValid(errors);
 
@@ -74,8 +66,6 @@ export function CreateMultisigForm() {
       <FieldGroup>
         {owners.map((owner, index) => (
           <OwnerKeyField
-            // Index identity is correct here: rows are positional and the
-            // contract addresses owners by their index in this set.
             // biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
             key={index}
             index={index}
@@ -98,7 +88,6 @@ export function CreateMultisigForm() {
 
         <Field data-invalid={submitted && errors.threshold ? true : undefined}>
           <FieldLabel htmlFor="threshold">Threshold</FieldLabel>
-          {/* `items` lets SelectValue render the label rather than the raw value. */}
           <Select
             items={thresholdItems}
             value={String(effectiveThreshold)}

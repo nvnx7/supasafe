@@ -1,8 +1,3 @@
-// Must be imported before any component that pulls in third-party CSS.
-// `@starknet-io/get-starknet-ui` ships its own Tailwind build, and whichever
-// stylesheet loads first fixes the cascade-layer order for the whole document.
-// If it wins, `base` ends up ordered after `utilities` and preflight's
-// `* { margin: 0; padding: 0 }` silently overrides every spacing utility.
 import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";

@@ -5,12 +5,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useMultisigs } from "@/hooks/use-multisigs";
 
-/**
- * Entry point to the create-multisig flow.
- *
- * Reads connection state directly so it can be dropped anywhere without the
- * placing component having to pass anything in.
- */
 export function CreateMultisigButton() {
   const { isConnected } = useMultisigs();
 

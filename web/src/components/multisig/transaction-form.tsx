@@ -19,16 +19,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { TOKENS } from "@/config/constants";
 import { useMultisig } from "@/hooks/use-multisig";
 import { useProposeTransaction } from "@/hooks/use-propose-transaction";
 import {
   isValidAddress,
   isValidAmount,
-  TOKENS,
   type TransactionKind,
 } from "@/lib/multisig";
 
-/** Per-kind copy and field requirements. */
 const KINDS: Record<
   TransactionKind,
   { needsRecipient: boolean; cta: string; hint: string; recipientLabel: string }
@@ -58,13 +57,6 @@ const TOKEN_ITEMS = TOKENS.map((token) => ({
   label: token.symbol,
 }));
 
-/**
- * Proposes one transaction against the multisig.
- *
- * Owns its own draft and submission; the panel only chooses which `kind` to
- * render. The multisig address comes from the route via `useMultisig`, so it is
- * never threaded through as a prop.
- */
 export function TransactionForm({ kind }: { kind: TransactionKind }) {
   const { needsRecipient, cta, hint, recipientLabel } = KINDS[kind];
   const { address } = useMultisig();

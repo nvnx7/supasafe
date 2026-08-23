@@ -14,12 +14,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMultisigs } from "@/hooks/use-multisigs";
 
-/**
- * The connected wallet's multisigs.
- *
- * Owns every display state — disconnected, loading, empty, populated — so the
- * page stays a pure composition of components.
- */
 export function MultisigList() {
   const { isConnected, multisigs, isLoading } = useMultisigs();
 

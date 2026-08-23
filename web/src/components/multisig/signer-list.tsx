@@ -12,12 +12,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMultisig } from "@/hooks/use-multisig";
 import { truncateAddress } from "@/lib/multisig";
 
-/**
- * The multisig's owner set.
- *
- * Owners are shown with their index because the contract addresses them
- * positionally — a signature bundle references `owner_index`, not the key.
- */
 export function SignerList() {
   const { multisig, isLoading } = useMultisig();
 

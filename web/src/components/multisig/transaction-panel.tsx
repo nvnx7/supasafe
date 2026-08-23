@@ -17,7 +17,6 @@ const TABS: { value: TransactionKind; label: string }[] = [
   { value: "transfer", label: "Transfer" },
 ];
 
-/** Entry point for proposing a transaction against the multisig. */
 export function TransactionPanel() {
   return (
     <Card>

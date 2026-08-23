@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMultisig } from "@/hooks/use-multisig";
 import { truncateAddress } from "@/lib/multisig";
 
-/** Headline facts about the multisig: address and signing threshold. */
 export function MultisigOverview() {
   const { multisig, isLoading } = useMultisig();
 
