@@ -82,15 +82,16 @@ pub mod PrivateMultisigAccount {
         threshold: u32,
     }
 
-    /// Emitted at construction and on every `set_owners`.
+    /// Emitted once per owner at construction and on every `set_owners`, keyed by `owner` so a
+    /// client can find every multisig an address belongs to with one filtered `getEvents` call
+    /// and render "t of n" without a follow-up read.
     ///
-    /// Carries the full resulting configuration rather than an add/remove diff, because
-    /// `_set_owners` replaces the set wholesale. A consumer can therefore reconstruct current
-    /// state from any single event, and diff consecutive ones off-chain to render history —
-    /// with no risk of drifting by missing an incremental event.
+    /// Removals emit nothing — a stale hit is resolved against `get_owners`.
     #[derive(Drop, starknet::Event)]
-    pub struct OwnersUpdated {
-        pub owners: Span<felt252>,
+    pub struct OwnerUpdated {
+        #[key]
+        pub owner: felt252,
+        pub owners_count: u32,
         pub threshold: u32,
     }
 
@@ -101,7 +102,7 @@ pub mod PrivateMultisigAccount {
         SRC5Event: SRC5Component::Event,
         #[flat]
         SRC9Event: SRC9Component::Event,
-        OwnersUpdated: OwnersUpdated,
+        OwnerUpdated: OwnerUpdated,
     }
 
     #[constructor]
@@ -250,7 +251,12 @@ pub mod PrivateMultisigAccount {
 
             self.owners_count.write(new_count);
             self.threshold.write(threshold);
-            self.emit(OwnersUpdated { owners, threshold });
+
+            let mut i: u32 = 0;
+            while i < new_count {
+                self.emit(OwnerUpdated { owner: *owners.at(i), owners_count: new_count, threshold });
+                i += 1;
+            };
         }
 
         /// Verifies that at least `threshold` of the encoded signatures are valid STARK-curve

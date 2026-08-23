@@ -14,7 +14,7 @@ use snforge_std::{
 use starknet::ContractAddress;
 use starknet::account::Call;
 use supersafe::hashing::compute_call_set_hash;
-use supersafe::multisig_account::PrivateMultisigAccount::{Event, OwnersUpdated};
+use supersafe::multisig_account::PrivateMultisigAccount::{Event, OwnerUpdated};
 use supersafe::multisig_account::{
     ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidationDispatcher,
     ICustomSignatureValidationDispatcherTrait, IDeployableDispatcher, IDeployableDispatcherTrait,
@@ -264,23 +264,41 @@ fn test_stale_owner_signature_rejected_after_owner_set_replaced() {
     assert(result == 0, 'stale owner should be rejected');
 }
 
-// --- OwnersUpdated event ---
+// --- OwnerUpdated event ---
 
 #[test]
-fn test_constructor_emits_owners_updated() {
+fn test_constructor_emits_owner_updated_per_owner() {
     let owners = array![keypair(1).public_key, keypair(2).public_key].span();
 
     let mut spy = spy_events();
     let contract_address = deploy_multisig(owners, 2);
 
+    // One event per owner, each carrying the same resulting configuration.
     spy
         .assert_emitted(
-            @array![(contract_address, Event::OwnersUpdated(OwnersUpdated { owners, threshold: 2 }))],
+            @array![
+                (
+                    contract_address,
+                    Event::OwnerUpdated(
+                        OwnerUpdated {
+                            owner: *owners.at(0), owners_count: 2, threshold: 2,
+                        },
+                    ),
+                ),
+                (
+                    contract_address,
+                    Event::OwnerUpdated(
+                        OwnerUpdated {
+                            owner: *owners.at(1), owners_count: 2, threshold: 2,
+                        },
+                    ),
+                ),
+            ],
         );
 }
 
 #[test]
-fn test_set_owners_emits_owners_updated() {
+fn test_set_owners_emits_owner_updated_per_new_owner() {
     let owners = array![keypair(1).public_key, keypair(2).public_key].span();
     let contract_address = deploy_multisig(owners, 2);
     let new_owners = array![keypair(3).public_key, keypair(4).public_key, keypair(5).public_key]
@@ -296,15 +314,45 @@ fn test_set_owners_emits_owners_updated() {
             @array![
                 (
                     contract_address,
-                    Event::OwnersUpdated(OwnersUpdated { owners: new_owners, threshold: 3 }),
+                    Event::OwnerUpdated(
+                        OwnerUpdated {
+                            owner: *new_owners.at(0), owners_count: 3, threshold: 3,
+                        },
+                    ),
+                ),
+                (
+                    contract_address,
+                    Event::OwnerUpdated(
+                        OwnerUpdated {
+                            owner: *new_owners.at(1), owners_count: 3, threshold: 3,
+                        },
+                    ),
+                ),
+                (
+                    contract_address,
+                    Event::OwnerUpdated(
+                        OwnerUpdated {
+                            owner: *new_owners.at(2), owners_count: 3, threshold: 3,
+                        },
+                    ),
                 ),
             ],
         );
-    // The spy starts after deployment, so this asserts specifically that the `set_owners`
-    // call announces only the new configuration — never the one it replaced.
+
+    // The spy starts after deployment, so this asserts specifically that a replaced owner is
+    // never re-announced — which is what lets a client treat a missing event as removal.
     spy
         .assert_not_emitted(
-            @array![(contract_address, Event::OwnersUpdated(OwnersUpdated { owners, threshold: 2 }))],
+            @array![
+                (
+                    contract_address,
+                    Event::OwnerUpdated(
+                        OwnerUpdated {
+                            owner: *owners.at(0), owners_count: 3, threshold: 3,
+                        },
+                    ),
+                ),
+            ],
         );
 }
 
