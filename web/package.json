@@ -16,6 +16,7 @@
     "@starknet-start/chains": "^1.0.7",
     "@starknet-start/providers": "^1.0.7",
     "@starknet-start/react": "^1.0.8",
+    "@tanstack/react-query": "^5.102.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.33.0",
