@@ -37,15 +37,15 @@ pub trait IMultisig<TState> {
     fn set_owners(ref self: TState, owners: Span<Owner>, threshold: u32);
 }
 
-/// One member's copy of the multisig's STRK20 viewing key, encrypted to the viewing public key
-/// that member registered with the privacy pool.
+/// One owner's copy of the multisig's STRK20 viewing key, encrypted to the viewing public key
+/// that owner registered with the privacy pool.
 ///
-/// Every member receives the *same* key — this is not secret sharing. A member who can decrypt
+/// Every owner receives the *same* key — this is not secret sharing. An owner who can decrypt
 /// their copy holds the whole key, which is the point: the pool registers a viewing key
 /// `WriteOnce` and offers no recovery, so spreading copies is the only redundancy available.
 #[derive(Copy, Drop, Serde)]
 pub struct EncryptedViewingKeyInput {
-    pub member: ContractAddress,
+    pub owner: ContractAddress,
     /// x-coordinate of the ephemeral ECDH public key, `(rG).x`.
     pub ephemeral_pubkey: felt252,
     pub ciphertext: felt252,
@@ -133,7 +133,7 @@ pub mod PrivateMultisigAccount {
         pub threshold: u32,
     }
 
-    /// Keyed by `member` so each one fetches only their own copy with a single filtered
+    /// Keyed by `owner` so each one fetches only their own copy with a single filtered
     /// `getEvents`, the same way `OwnerUpdated` is consumed.
     ///
     /// Only the constructor emits this, which is what makes it trustworthy: the copies are part
@@ -141,12 +141,12 @@ pub mod PrivateMultisigAccount {
     /// so an event carrying this multisig's address is necessarily the one it was created with.
     /// Nobody can publish a competing copy without producing a different multisig.
     ///
-    /// `viewing_public_key` is this multisig's, in the clear, so a member can confirm what they
+    /// `viewing_public_key` is this multisig's, in the clear, so an owner can confirm what they
     /// decrypted.
     #[derive(Drop, starknet::Event)]
     pub struct EncryptedViewingKey {
         #[key]
-        pub member: ContractAddress,
+        pub owner: ContractAddress,
         pub viewing_public_key: felt252,
         pub ephemeral_pubkey: felt252,
         pub ciphertext: felt252,
@@ -163,9 +163,10 @@ pub mod PrivateMultisigAccount {
         EncryptedViewingKey: EncryptedViewingKey,
     }
 
-    /// `viewing_public_key` and `encrypted` are optional and travel together: pass a zero key
-    /// and an empty span to create a multisig with no STRK20 viewing key yet, which is the only
-    /// way to create one before a pool exists to read member keys from.
+    /// `viewing_public_key` and `encrypted` are required: every owner must receive an
+    /// encrypted copy of the same STRK20 viewing key, in the same order as `owners`. A multisig
+    /// cannot be created before all its owners have registered a viewing public key with the
+    /// pool.
     #[constructor]
     fn constructor(
         ref self: ContractState,
@@ -175,7 +176,7 @@ pub mod PrivateMultisigAccount {
         encrypted: Span<EncryptedViewingKeyInput>,
     ) {
         self._set_owners(owners, threshold);
-        self._publish_encrypted_viewing_keys(viewing_public_key, encrypted);
+        self._publish_encrypted_viewing_keys(owners, viewing_public_key, encrypted);
         self.src5.register_interface(ISRC6_ID);
         self.src5.register_interface(ICUSTOM_SIGNATURE_VALIDATION_ID);
         // Registers ISRC9_V2_ID — paymasters require it to relay for this account.
@@ -279,23 +280,29 @@ pub mod PrivateMultisigAccount {
     #[generate_trait]
     impl ViewingKeyInternalImpl of ViewingKeyInternalTrait {
         /// Constructor-only, and deliberately not exposed. An external entrypoint would let
-        /// anyone emit a competing copy of a key they chose, which a member could not tell apart
+        /// anyone emit a competing copy of a key they chose, which an owner could not tell apart
         /// from the real one; keeping it here means the multisig's own address vouches for the
         /// copies, since the address is derived from the constructor calldata carrying them.
+        ///
+        /// Requires exactly one encrypted copy per owner, in the same order as `owners` — that
+        /// is what lets membership be a straight zip instead of a search, and it means every
+        /// owner is guaranteed a copy rather than only whichever ones the deployer chose.
         fn _publish_encrypted_viewing_keys(
             ref self: ContractState,
+            owners: Span<Owner>,
             viewing_public_key: felt252,
             encrypted: Span<EncryptedViewingKeyInput>,
         ) {
-            if encrypted.is_empty() {
-                assert(viewing_public_key.is_zero(), 'ENCRYPTED_KEYS_MISSING');
-                return;
-            }
             assert(viewing_public_key.is_non_zero(), 'ZERO_VIEWING_PUBLIC_KEY');
+            assert(encrypted.len() == owners.len(), 'ENCRYPTED_KEYS_COUNT_MISMATCH');
 
-            for entry in encrypted {
-                let EncryptedViewingKeyInput { member, ephemeral_pubkey, ciphertext } = *entry;
-                assert(member.is_non_zero(), 'ZERO_MEMBER');
+            let mut i: u32 = 0;
+            while i < owners.len() {
+                let owner = *owners.at(i);
+                let EncryptedViewingKeyInput {
+                    owner: encrypted_owner, ephemeral_pubkey, ciphertext,
+                } = *encrypted.at(i);
+                assert(encrypted_owner == owner.address, 'ENCRYPTED_KEY_OWNER_MISMATCH');
                 // A valid curve point never has a zero x-coordinate; `ciphertext` is a masked
                 // field element and may legitimately be anything, so it is not checked.
                 assert(ephemeral_pubkey.is_non_zero(), 'ZERO_EPHEMERAL_PUBKEY');
@@ -303,10 +310,14 @@ pub mod PrivateMultisigAccount {
                 self
                     .emit(
                         EncryptedViewingKey {
-                            member, viewing_public_key, ephemeral_pubkey, ciphertext,
+                            owner: encrypted_owner,
+                            viewing_public_key,
+                            ephemeral_pubkey,
+                            ciphertext,
                         },
                     );
-            }
+                i += 1;
+            };
         }
     }
 

@@ -659,22 +659,22 @@ fn test_owner_approval_hash_binds_both_addresses() {
 
 // --- encrypted viewing key distribution ---
 
-fn encrypted_for(member: felt252, ciphertext: felt252) -> EncryptedViewingKeyInput {
+fn encrypted_for(owner: felt252, ciphertext: felt252) -> EncryptedViewingKeyInput {
     EncryptedViewingKeyInput {
-        member: owner_address(member), ephemeral_pubkey: 0x1234 + member, ciphertext,
+        owner: owner_address(owner), ephemeral_pubkey: 0x1234 + owner, ciphertext,
     }
 }
 
 fn expect_encrypted(
-    contract_address: ContractAddress, member: felt252, ciphertext: felt252,
+    contract_address: ContractAddress, owner: felt252, ciphertext: felt252,
 ) -> (ContractAddress, Event) {
     (
         contract_address,
         Event::EncryptedViewingKey(
             EncryptedViewingKey {
-                member: owner_address(member),
+                owner: owner_address(owner),
                 viewing_public_key: 0xfeed,
-                ephemeral_pubkey: 0x1234 + member,
+                ephemeral_pubkey: 0x1234 + owner,
                 ciphertext,
             },
         ),
@@ -682,14 +682,14 @@ fn expect_encrypted(
 }
 
 #[test]
-fn test_constructor_publishes_one_encrypted_viewing_key_per_member() {
+fn test_constructor_publishes_one_encrypted_viewing_key_per_owner() {
     let owners = owners_of(array![1, 2].span());
     let encrypted = array![encrypted_for(1, 0xaaa), encrypted_for(2, 0xbbb)].span();
 
     let mut spy = spy_events();
     let contract_address = deploy_multisig_with_viewing_key(owners, 2, 0xfeed, encrypted);
 
-    // Every member gets the same viewing key, encrypted only to them.
+    // Every owner gets the same viewing key, encrypted only to them.
     spy
         .assert_emitted(
             @array![
@@ -701,49 +701,68 @@ fn test_constructor_publishes_one_encrypted_viewing_key_per_member() {
 
 /// The copies live in constructor calldata, and an address is derived from its constructor
 /// calldata — so changing a single ciphertext yields a different multisig entirely. That is what
-/// lets a member trust a copy carrying this address without trusting whoever deployed it.
+/// lets an owner trust a copy carrying this address without trusting whoever deployed it.
 #[test]
 fn test_encrypted_viewing_keys_change_the_multisig_address() {
     let owners = owners_of(array![1, 2].span());
     let a = deploy_multisig_with_viewing_key(
-        owners, 2, 0xfeed, array![encrypted_for(1, 0xaaa)].span(),
+        owners, 2, 0xfeed, array![encrypted_for(1, 0xaaa), encrypted_for(2, 0xbbb)].span(),
     );
     let b = deploy_multisig_with_viewing_key(
-        owners, 2, 0xfeed, array![encrypted_for(1, 0xbbb)].span(),
+        owners, 2, 0xfeed, array![encrypted_for(1, 0xbbb), encrypted_for(2, 0xbbb)].span(),
     );
     assert(a != b, 'ciphertext not committed to');
 }
 
-/// A multisig can be created before a pool exists to read member keys from.
+/// A multisig cannot be created before every owner has a registered pool viewing key to
+/// encrypt to — omitting both fields is rejected, not treated as opting out.
 #[test]
-fn test_constructor_allows_no_viewing_key() {
-    let mut spy = spy_events();
-    let contract_address = deploy_multisig(owners_of(array![1, 2].span()), 2);
-
-    spy
-        .assert_not_emitted(
-            @array![
-                expect_encrypted(contract_address, 1, 0xaaa),
-                expect_encrypted(contract_address, 2, 0xbbb),
-            ],
-        );
+fn test_constructor_requires_viewing_key() {
+    let owners = owners_of(array![1, 2].span());
+    match try_deploy_multisig(owners, 2, 0, array![].span()) {
+        Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
+        Result::Err(data) => assert(*data.at(0) == 'ZERO_VIEWING_PUBLIC_KEY', *data.at(0)),
+    }
 }
 
 #[test]
-fn test_constructor_rejects_viewing_key_without_encrypted_copies() {
+fn test_constructor_rejects_encrypted_copy_count_mismatch() {
     let owners = owners_of(array![1, 2].span());
-    match try_deploy_multisig(owners, 2, 0xfeed, array![].span()) {
+    match try_deploy_multisig(owners, 2, 0xfeed, array![encrypted_for(1, 0xaaa)].span()) {
         Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
-        Result::Err(data) => assert(*data.at(0) == 'ENCRYPTED_KEYS_MISSING', *data.at(0)),
+        Result::Err(data) => assert(*data.at(0) == 'ENCRYPTED_KEYS_COUNT_MISMATCH', *data.at(0)),
     }
 }
 
 #[test]
 fn test_constructor_rejects_copies_without_viewing_key() {
     let owners = owners_of(array![1, 2].span());
-    match try_deploy_multisig(owners, 2, 0, array![encrypted_for(1, 0xaaa)].span()) {
+    let encrypted = array![encrypted_for(1, 0xaaa), encrypted_for(2, 0xbbb)].span();
+    match try_deploy_multisig(owners, 2, 0, encrypted) {
         Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
         Result::Err(data) => assert(*data.at(0) == 'ZERO_VIEWING_PUBLIC_KEY', *data.at(0)),
+    }
+}
+
+#[test]
+fn test_constructor_rejects_encrypted_key_for_non_owner() {
+    let owners = owners_of(array![1, 2].span());
+    // Second entry names an address that isn't owners[1].
+    let encrypted = array![encrypted_for(1, 0xaaa), encrypted_for(99, 0xbbb)].span();
+    match try_deploy_multisig(owners, 2, 0xfeed, encrypted) {
+        Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
+        Result::Err(data) => assert(*data.at(0) == 'ENCRYPTED_KEY_OWNER_MISMATCH', *data.at(0)),
+    }
+}
+
+#[test]
+fn test_constructor_rejects_out_of_order_encrypted_copies() {
+    let owners = owners_of(array![1, 2].span());
+    // Right owners, wrong order — the check zips positionally against `owners`.
+    let encrypted = array![encrypted_for(2, 0xbbb), encrypted_for(1, 0xaaa)].span();
+    match try_deploy_multisig(owners, 2, 0xfeed, encrypted) {
+        Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
+        Result::Err(data) => assert(*data.at(0) == 'ENCRYPTED_KEY_OWNER_MISMATCH', *data.at(0)),
     }
 }
 
@@ -751,9 +770,10 @@ fn test_constructor_rejects_copies_without_viewing_key() {
 fn test_constructor_rejects_zero_ephemeral_pubkey() {
     let owners = owners_of(array![1, 2].span());
     let bad = EncryptedViewingKeyInput {
-        member: owner_address(1), ephemeral_pubkey: 0, ciphertext: 0xaaa,
+        owner: owner_address(2), ephemeral_pubkey: 0, ciphertext: 0xaaa,
     };
-    match try_deploy_multisig(owners, 2, 0xfeed, array![bad].span()) {
+    let encrypted = array![encrypted_for(1, 0xaaa), bad].span();
+    match try_deploy_multisig(owners, 2, 0xfeed, encrypted) {
         Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
         Result::Err(data) => assert(*data.at(0) == 'ZERO_EPHEMERAL_PUBKEY', *data.at(0)),
     }

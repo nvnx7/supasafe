@@ -62,9 +62,37 @@ pub fn sign_as(
     keypair(secret).sign(owner_msg).unwrap()
 }
 
-/// Deploys with no STRK20 viewing key, which is how most tests want it.
+/// The public key doesn't need to be a real ECDH key for any test outside the encrypted-viewing-
+/// key suite, which builds its own; it only needs to be non-zero.
+const DEFAULT_VIEWING_PUBLIC_KEY: felt252 = 0xfeed;
+
+/// One encrypted-viewing-key entry per owner, in owner order, satisfying the constructor's
+/// required-field checks without asserting anything about their content.
+pub fn default_encrypted_viewing_keys(owners: Span<Owner>) -> Span<EncryptedViewingKeyInput> {
+    let mut encrypted = array![];
+    let mut i: u32 = 0;
+    while i < owners.len() {
+        let owner = *owners.at(i);
+        encrypted
+            .append(
+                EncryptedViewingKeyInput {
+                    owner: owner.address,
+                    ephemeral_pubkey: 0x1234 + i.into() + 1,
+                    ciphertext: 0xaaa + i.into(),
+                },
+            );
+        i += 1;
+    };
+    encrypted.span()
+}
+
+/// Deploys with a synthesized viewing key so tests unrelated to that feature don't have to build
+/// one by hand; anything exercising the feature itself should call
+/// `deploy_multisig_with_viewing_key` directly.
 pub fn deploy_multisig(owners: Span<Owner>, threshold: u32) -> ContractAddress {
-    deploy_multisig_with_viewing_key(owners, threshold, 0, array![].span())
+    deploy_multisig_with_viewing_key(
+        owners, threshold, DEFAULT_VIEWING_PUBLIC_KEY, default_encrypted_viewing_keys(owners),
+    )
 }
 
 pub fn deploy_multisig_with_viewing_key(
