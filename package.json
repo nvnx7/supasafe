@@ -29,5 +29,8 @@
     "web",
     "config",
     "contracts"
-  ]
+  ],
+  "patchedDependencies": {
+    "@starkware-libs/starknet-privacy-sdk@0.14.3-rc.5": "patches/@starkware-libs%2Fstarknet-privacy-sdk@0.14.3-rc.5.patch"
+  }
 }

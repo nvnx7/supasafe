@@ -1,0 +1,15 @@
+diff --git a/package.json b/package.json
+index 578243ca11465821f344703db965338ad9000141..78b79b48f3523f2ce4a992d765516d168392fe93 100644
+--- a/package.json
++++ b/package.json
+@@ -15,6 +15,10 @@
+       "import": "./dist/index.js",
+       "types": "./dist/index.d.ts"
+     },
++    "./utils": {
++      "import": "./dist/utils/index.js",
++      "types": "./dist/utils/index.d.ts"
++    },
+     "./testing": {
+       "import": "./dist/testing/index.js",
+       "types": "./dist/testing/index.d.ts"
