@@ -8,26 +8,55 @@ import { CallData, hash, stark } from "starknet";
 import { networkConfig } from "@/config/network";
 import type { Owner } from "@/lib/multisig";
 
+type EncryptedViewingKey = {
+  owner: string;
+  /// x-coordinate of the ephemeral ECDH public key, `(rG).x`.
+  ephemeralPubkey: bigint;
+  ciphertext: bigint;
+};
+
 export type CreateMultisigParams = {
   owners: Owner[];
   threshold: number;
   salt?: bigint;
+  viewingKey: {
+    publicKey: bigint;
+    encrypted: EncryptedViewingKey[];
+  };
 };
 
 // The UDC deploys from address zero, so this is the address that lands on-chain.
-export function buildMultisigDeployment(
-  owners: Owner[],
-  threshold: number,
-  salt: bigint,
-) {
+export function buildMultisigDeployment({
+  owners,
+  threshold,
+  salt,
+  viewingKey,
+}: CreateMultisigParams & { salt: bigint }) {
+  if (viewingKey.encrypted.length !== owners.length) {
+    throw new Error("Every owner needs exactly one encrypted viewing key.");
+  }
+  owners.forEach((owner, index) => {
+    const entry = viewingKey.encrypted[index];
+    if (!entry || BigInt(entry.owner) !== BigInt(owner.address)) {
+      throw new Error("Encrypted viewing keys must be in owner order.");
+    }
+  });
+
   const classHash = networkConfig.multisigClassHash;
-  // `Span<Owner>` serializes as length followed by each struct's fields in declaration order.
   const constructorCalldata = CallData.compile({
     owners: owners.map(({ address, publicKey }) => ({
       address,
       public_key: publicKey,
     })),
     threshold,
+    viewing_public_key: viewingKey.publicKey,
+    encrypted: viewingKey.encrypted.map(
+      ({ owner, ephemeralPubkey, ciphertext }) => ({
+        owner,
+        ephemeral_pubkey: ephemeralPubkey,
+        ciphertext,
+      }),
+    ),
   });
 
   return {
@@ -53,15 +82,8 @@ export function useCreateMultisig() {
     if (!udc) throw new Error("Universal Deployer unavailable.");
 
     const salt = params.salt ?? BigInt(stark.randomAddress());
-    const deployment = buildMultisigDeployment(
-      params.owners,
-      params.threshold,
-      salt,
-    );
+    const deployment = buildMultisigDeployment({ ...params, salt });
 
-    // The third argument is `not_from_zero` on-chain, so `false` is what keeps the
-    // deployer at zero and the address equal to the one computed above. The ABI
-    // starknet-react bundles names it `from_zero`, which reads inverted.
     const call = udc.populate("deploy_contract", [
       deployment.classHash,
       deployment.addressSalt,
