@@ -10,11 +10,6 @@ import { isValidAddress } from "@/lib/multisig";
 /// OpenZeppelin and Braavos, `get_owner` is Argent. First one that answers wins.
 const PUBLIC_KEY_ENTRYPOINTS = ["get_public_key", "getPublicKey", "get_owner"];
 
-/// Reads the STARK public key an account signs with.
-///
-/// The multisig verifies signatures against this key rather than dispatching to the account, so
-/// it has to be captured up front — and read from the account rather than supplied by whoever
-/// creates the multisig, so the address and key cannot be mismatched on purpose.
 export async function getOwnerPublicKey(
   provider: ProviderInterface,
   address: string,
