@@ -6,14 +6,14 @@ export interface Owner {
   publicKey: string;
 }
 
-/// One member's copy of a multisig's STRK20 viewing key, encrypted to the viewing public key
-/// that member registered with the pool. Every member receives the same key — these are not
+/// One owner's copy of a multisig's STRK20 viewing key, encrypted to the viewing public key
+/// that owner registered with the pool. Every owner receives the same key — these are not
 /// secret-sharing fragments.
 export interface EncryptedViewingKey {
-  member: string;
+  owner: string;
   /// x-coordinate of the ephemeral ECDH public key, `(rG).x`.
-  ephemeralPubkey: string;
-  ciphertext: string;
+  ephemeralPubkey: bigint;
+  ciphertext: bigint;
 }
 
 export interface MultisigDetail {
