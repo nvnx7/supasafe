@@ -13,15 +13,17 @@ use core::num::traits::Zero;
 use starknet::ContractAddress;
 use starknet::account::Call;
 use supersafe::hashing::compute_call_set_hash;
-use supersafe::multisig_account::PrivateMultisigAccount::{Event, OwnerUpdated};
+use supersafe::multisig_account::PrivateMultisigAccount::{
+    EncryptedViewingKey, Event, OwnerUpdated,
+};
 use supersafe::multisig_account::{
-    ICUSTOM_SIGNATURE_VALIDATION_ID, Owner, ICustomSignatureValidationDispatcher,
+    EncryptedViewingKeyInput, ICUSTOM_SIGNATURE_VALIDATION_ID, Owner, ICustomSignatureValidationDispatcher,
     ICustomSignatureValidationDispatcherTrait, IDeployableDispatcher, IDeployableDispatcherTrait,
     IMultisigDispatcher, IMultisigDispatcherTrait,
 };
 use super::utils::{
-    assert_deploy_fails_with, deploy_multisig, keypair, owner_address, owners_of, sample_calls,
-    sign_as, sign_bundle,
+    assert_deploy_fails_with, deploy_multisig, deploy_multisig_with_viewing_key, keypair,
+    owner_address, owners_of, sample_calls, sign_as, sign_bundle, try_deploy_multisig,
 };
 
 /// Mirrors `SRC9Component::SNIP12MetadataImpl` so tests derive the exact hash the
@@ -482,7 +484,7 @@ fn test_validate_deploy_accepts_threshold_signature() {
     start_cheat_signature(contract_address, signature.span());
 
     let result = IDeployableDispatcher { contract_address }
-        .__validate_deploy__(0x1234, 0x5678, owners_of(array![1].span()), 1);
+        .__validate_deploy__(0x1234, 0x5678, owners_of(array![1].span()), 1, 0, array![].span());
     assert(result == starknet::VALIDATED, 'expected VALIDATED');
 }
 
@@ -498,7 +500,7 @@ fn test_validate_deploy_rejects_insufficient_signatures() {
     start_cheat_signature(contract_address, signature.span());
 
     IDeployableDispatcher { contract_address }
-        .__validate_deploy__(0x1234, 0x5678, owners_of(array![1].span()), 1);
+        .__validate_deploy__(0x1234, 0x5678, owners_of(array![1].span()), 1, 0, array![].span());
 }
 
 #[test]
@@ -653,4 +655,106 @@ fn test_owner_approval_hash_binds_both_addresses() {
         supersafe::hashing::compute_owner_approval_hash(multisig, owner, 0x3334) != base,
         'payload not bound',
     );
+}
+
+// --- encrypted viewing key distribution ---
+
+fn encrypted_for(member: felt252, ciphertext: felt252) -> EncryptedViewingKeyInput {
+    EncryptedViewingKeyInput {
+        member: owner_address(member), ephemeral_pubkey: 0x1234 + member, ciphertext,
+    }
+}
+
+fn expect_encrypted(
+    contract_address: ContractAddress, member: felt252, ciphertext: felt252,
+) -> (ContractAddress, Event) {
+    (
+        contract_address,
+        Event::EncryptedViewingKey(
+            EncryptedViewingKey {
+                member: owner_address(member),
+                viewing_public_key: 0xfeed,
+                ephemeral_pubkey: 0x1234 + member,
+                ciphertext,
+            },
+        ),
+    )
+}
+
+#[test]
+fn test_constructor_publishes_one_encrypted_viewing_key_per_member() {
+    let owners = owners_of(array![1, 2].span());
+    let encrypted = array![encrypted_for(1, 0xaaa), encrypted_for(2, 0xbbb)].span();
+
+    let mut spy = spy_events();
+    let contract_address = deploy_multisig_with_viewing_key(owners, 2, 0xfeed, encrypted);
+
+    // Every member gets the same viewing key, encrypted only to them.
+    spy
+        .assert_emitted(
+            @array![
+                expect_encrypted(contract_address, 1, 0xaaa),
+                expect_encrypted(contract_address, 2, 0xbbb),
+            ],
+        );
+}
+
+/// The copies live in constructor calldata, and an address is derived from its constructor
+/// calldata — so changing a single ciphertext yields a different multisig entirely. That is what
+/// lets a member trust a copy carrying this address without trusting whoever deployed it.
+#[test]
+fn test_encrypted_viewing_keys_change_the_multisig_address() {
+    let owners = owners_of(array![1, 2].span());
+    let a = deploy_multisig_with_viewing_key(
+        owners, 2, 0xfeed, array![encrypted_for(1, 0xaaa)].span(),
+    );
+    let b = deploy_multisig_with_viewing_key(
+        owners, 2, 0xfeed, array![encrypted_for(1, 0xbbb)].span(),
+    );
+    assert(a != b, 'ciphertext not committed to');
+}
+
+/// A multisig can be created before a pool exists to read member keys from.
+#[test]
+fn test_constructor_allows_no_viewing_key() {
+    let mut spy = spy_events();
+    let contract_address = deploy_multisig(owners_of(array![1, 2].span()), 2);
+
+    spy
+        .assert_not_emitted(
+            @array![
+                expect_encrypted(contract_address, 1, 0xaaa),
+                expect_encrypted(contract_address, 2, 0xbbb),
+            ],
+        );
+}
+
+#[test]
+fn test_constructor_rejects_viewing_key_without_encrypted_copies() {
+    let owners = owners_of(array![1, 2].span());
+    match try_deploy_multisig(owners, 2, 0xfeed, array![].span()) {
+        Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
+        Result::Err(data) => assert(*data.at(0) == 'ENCRYPTED_KEYS_MISSING', *data.at(0)),
+    }
+}
+
+#[test]
+fn test_constructor_rejects_copies_without_viewing_key() {
+    let owners = owners_of(array![1, 2].span());
+    match try_deploy_multisig(owners, 2, 0, array![encrypted_for(1, 0xaaa)].span()) {
+        Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
+        Result::Err(data) => assert(*data.at(0) == 'ZERO_VIEWING_PUBLIC_KEY', *data.at(0)),
+    }
+}
+
+#[test]
+fn test_constructor_rejects_zero_ephemeral_pubkey() {
+    let owners = owners_of(array![1, 2].span());
+    let bad = EncryptedViewingKeyInput {
+        member: owner_address(1), ephemeral_pubkey: 0, ciphertext: 0xaaa,
+    };
+    match try_deploy_multisig(owners, 2, 0xfeed, array![bad].span()) {
+        Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
+        Result::Err(data) => assert(*data.at(0) == 'ZERO_EPHEMERAL_PUBKEY', *data.at(0)),
+    }
 }

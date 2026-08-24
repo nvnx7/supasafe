@@ -37,6 +37,20 @@ pub trait IMultisig<TState> {
     fn set_owners(ref self: TState, owners: Span<Owner>, threshold: u32);
 }
 
+/// One member's copy of the multisig's STRK20 viewing key, encrypted to the viewing public key
+/// that member registered with the privacy pool.
+///
+/// Every member receives the *same* key — this is not secret sharing. A member who can decrypt
+/// their copy holds the whole key, which is the point: the pool registers a viewing key
+/// `WriteOnce` and offers no recovery, so spreading copies is the only redundancy available.
+#[derive(Copy, Drop, Serde)]
+pub struct EncryptedViewingKeyInput {
+    pub member: ContractAddress,
+    /// x-coordinate of the ephemeral ECDH public key, `(rG).x`.
+    pub ephemeral_pubkey: felt252,
+    pub ciphertext: felt252,
+}
+
 /// Protocol-invoked validation for `DEPLOY_ACCOUNT` and `DECLARE` transactions.
 ///
 /// `__validate_deploy__` receives the constructor calldata spread after `class_hash` and
@@ -51,6 +65,8 @@ pub trait IDeployable<TState> {
         contract_address_salt: felt252,
         owners: Span<Owner>,
         threshold: u32,
+        viewing_public_key: felt252,
+        encrypted: Span<EncryptedViewingKeyInput>,
     ) -> felt252;
     fn __validate_declare__(self: @TState, class_hash: felt252) -> felt252;
 }
@@ -74,7 +90,8 @@ pub mod PrivateMultisigAccount {
     };
     use crate::hashing::{approval_context, compute_call_set_hash, owner_approval_hash};
     use super::{
-        ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidation, IDeployable, IMultisig, Owner,
+        EncryptedViewingKeyInput, ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidation,
+        IDeployable, IMultisig, Owner,
     };
 
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
@@ -116,6 +133,25 @@ pub mod PrivateMultisigAccount {
         pub threshold: u32,
     }
 
+    /// Keyed by `member` so each one fetches only their own copy with a single filtered
+    /// `getEvents`, the same way `OwnerUpdated` is consumed.
+    ///
+    /// Only the constructor emits this, which is what makes it trustworthy: the copies are part
+    /// of the constructor calldata, and a contract address commits to its constructor calldata,
+    /// so an event carrying this multisig's address is necessarily the one it was created with.
+    /// Nobody can publish a competing copy without producing a different multisig.
+    ///
+    /// `viewing_public_key` is this multisig's, in the clear, so a member can confirm what they
+    /// decrypted.
+    #[derive(Drop, starknet::Event)]
+    pub struct EncryptedViewingKey {
+        #[key]
+        pub member: ContractAddress,
+        pub viewing_public_key: felt252,
+        pub ephemeral_pubkey: felt252,
+        pub ciphertext: felt252,
+    }
+
     #[event]
     #[derive(Drop, starknet::Event)]
     pub enum Event {
@@ -124,11 +160,22 @@ pub mod PrivateMultisigAccount {
         #[flat]
         SRC9Event: SRC9Component::Event,
         OwnerUpdated: OwnerUpdated,
+        EncryptedViewingKey: EncryptedViewingKey,
     }
 
+    /// `viewing_public_key` and `encrypted` are optional and travel together: pass a zero key
+    /// and an empty span to create a multisig with no STRK20 viewing key yet, which is the only
+    /// way to create one before a pool exists to read member keys from.
     #[constructor]
-    fn constructor(ref self: ContractState, owners: Span<Owner>, threshold: u32) {
+    fn constructor(
+        ref self: ContractState,
+        owners: Span<Owner>,
+        threshold: u32,
+        viewing_public_key: felt252,
+        encrypted: Span<EncryptedViewingKeyInput>,
+    ) {
         self._set_owners(owners, threshold);
+        self._publish_encrypted_viewing_keys(viewing_public_key, encrypted);
         self.src5.register_interface(ISRC6_ID);
         self.src5.register_interface(ICUSTOM_SIGNATURE_VALIDATION_ID);
         // Registers ISRC9_V2_ID — paymasters require it to relay for this account.
@@ -146,6 +193,8 @@ pub mod PrivateMultisigAccount {
             contract_address_salt: felt252,
             owners: Span<Owner>,
             threshold: u32,
+            viewing_public_key: felt252,
+            encrypted: Span<EncryptedViewingKeyInput>,
         ) -> felt252 {
             self._validate_tx()
         }
@@ -224,6 +273,40 @@ pub mod PrivateMultisigAccount {
         fn set_owners(ref self: ContractState, owners: Span<Owner>, threshold: u32) {
             self.assert_only_self();
             self._set_owners(owners, threshold);
+        }
+    }
+
+    #[generate_trait]
+    impl ViewingKeyInternalImpl of ViewingKeyInternalTrait {
+        /// Constructor-only, and deliberately not exposed. An external entrypoint would let
+        /// anyone emit a competing copy of a key they chose, which a member could not tell apart
+        /// from the real one; keeping it here means the multisig's own address vouches for the
+        /// copies, since the address is derived from the constructor calldata carrying them.
+        fn _publish_encrypted_viewing_keys(
+            ref self: ContractState,
+            viewing_public_key: felt252,
+            encrypted: Span<EncryptedViewingKeyInput>,
+        ) {
+            if encrypted.is_empty() {
+                assert(viewing_public_key.is_zero(), 'ENCRYPTED_KEYS_MISSING');
+                return;
+            }
+            assert(viewing_public_key.is_non_zero(), 'ZERO_VIEWING_PUBLIC_KEY');
+
+            for entry in encrypted {
+                let EncryptedViewingKeyInput { member, ephemeral_pubkey, ciphertext } = *entry;
+                assert(member.is_non_zero(), 'ZERO_MEMBER');
+                // A valid curve point never has a zero x-coordinate; `ciphertext` is a masked
+                // field element and may legitimately be anything, so it is not checked.
+                assert(ephemeral_pubkey.is_non_zero(), 'ZERO_EPHEMERAL_PUBKEY');
+
+                self
+                    .emit(
+                        EncryptedViewingKey {
+                            member, viewing_public_key, ephemeral_pubkey, ciphertext,
+                        },
+                    );
+            }
         }
     }
 

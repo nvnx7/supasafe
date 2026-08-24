@@ -7,7 +7,7 @@ use snforge_std::{ContractClassTrait, DeclareResultTrait, declare};
 use starknet::ContractAddress;
 use starknet::account::Call;
 use supersafe::hashing::compute_owner_approval_hash;
-use supersafe::multisig_account::Owner;
+use supersafe::multisig_account::{EncryptedViewingKeyInput, Owner};
 
 pub fn keypair(secret: felt252) -> StarkCurveKeyPair {
     StarkCurveKeyPairImpl::from_secret_key(secret)
@@ -62,23 +62,41 @@ pub fn sign_as(
     keypair(secret).sign(owner_msg).unwrap()
 }
 
+/// Deploys with no STRK20 viewing key, which is how most tests want it.
 pub fn deploy_multisig(owners: Span<Owner>, threshold: u32) -> ContractAddress {
-    let (contract_address, _) = try_deploy_multisig(owners, threshold).unwrap();
+    deploy_multisig_with_viewing_key(owners, threshold, 0, array![].span())
+}
+
+pub fn deploy_multisig_with_viewing_key(
+    owners: Span<Owner>,
+    threshold: u32,
+    viewing_public_key: felt252,
+    encrypted: Span<EncryptedViewingKeyInput>,
+) -> ContractAddress {
+    let (contract_address, _) = try_deploy_multisig(
+        owners, threshold, viewing_public_key, encrypted,
+    )
+        .unwrap();
     contract_address
 }
 
 pub fn try_deploy_multisig(
-    owners: Span<Owner>, threshold: u32,
+    owners: Span<Owner>,
+    threshold: u32,
+    viewing_public_key: felt252,
+    encrypted: Span<EncryptedViewingKeyInput>,
 ) -> Result<(ContractAddress, Span<felt252>), Array<felt252>> {
     let contract = declare("PrivateMultisigAccount").unwrap().contract_class();
     let mut calldata = array![];
     owners.serialize(ref calldata);
     threshold.serialize(ref calldata);
+    viewing_public_key.serialize(ref calldata);
+    encrypted.serialize(ref calldata);
     contract.deploy(@calldata)
 }
 
 pub fn assert_deploy_fails_with(owners: Span<Owner>, threshold: u32, expected: felt252) {
-    match try_deploy_multisig(owners, threshold) {
+    match try_deploy_multisig(owners, threshold, 0, array![].span()) {
         Result::Ok(_) => core::panic_with_felt252('expected deploy to fail'),
         Result::Err(panic_data) => assert(*panic_data.at(0) == expected, *panic_data.at(0)),
     }
