@@ -39,7 +39,3 @@ devnet:
 # Declare the multisig class and print its hash. Re-run after every devnet restart.
 declare network="devnet":
     cd contracts && bun run scripts/declare.ts {{network}}
-
-# Declare and deploy the multisig. Defaults to devnet; pass a network to override.
-deploy network="devnet":
-    cd contracts && bun run deploy {{network}}
