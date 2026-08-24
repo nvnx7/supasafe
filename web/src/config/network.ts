@@ -32,7 +32,7 @@ const devnetConfig: NetworkConfig = {
   chainId: DEVNET_CHAIN_ID,
   udcAddress: '0x2CEED65A4BD731034C01113685C831B01C15D7D432F71AFB1CF1634B53A2125',
   privacyPoolAddress: '',
-  multisigClassHash: '0x737a039638b16426950d45af6f6026461d22e0b6a148be6321bffb93fdce538'
+  multisigClassHash: '0x710c8af32df683660c7ca3eb7ddb6c20a226d59687842bca8c0bb3ec838d2fa'
 };
 
 const sepoliaConfig: NetworkConfig = {
