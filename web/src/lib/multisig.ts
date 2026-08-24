@@ -6,6 +6,16 @@ export interface Owner {
   publicKey: string;
 }
 
+/// One member's copy of a multisig's STRK20 viewing key, encrypted to the viewing public key
+/// that member registered with the pool. Every member receives the same key — these are not
+/// secret-sharing fragments.
+export interface EncryptedViewingKey {
+  member: string;
+  /// x-coordinate of the ephemeral ECDH public key, `(rG).x`.
+  ephemeralPubkey: string;
+  ciphertext: string;
+}
+
 export interface MultisigDetail {
   address: string;
   // In the order the contract stores them; index is what a signature bundle refers to.
