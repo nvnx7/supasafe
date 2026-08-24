@@ -1,9 +1,5 @@
 import { Account, RpcProvider } from "starknet";
-import {
-  deployerAddress,
-  deployerPrivateKey,
-  networkConfig,
-} from "./config.js";
+import { deployerAddress, deployerPrivateKey, networkConfig } from "./config";
 import { loadClass } from "./utils.js";
 
 const rpcUrl = networkConfig.rpcUrl;
