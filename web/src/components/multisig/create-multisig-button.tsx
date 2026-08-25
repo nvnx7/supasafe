@@ -18,7 +18,7 @@ export function CreateMultisigButton() {
   }
 
   return (
-    <Button render={<Link href="/new" />}>
+    <Button nativeButton={false} render={<Link href="/new" />}>
       <PlusIcon data-icon="inline-start" />
       New multisig
     </Button>
