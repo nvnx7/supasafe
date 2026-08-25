@@ -5,6 +5,7 @@ import {
   useUniversalDeployerContract,
 } from "@starknet-start/react";
 import { CallData, hash, stark } from "starknet";
+import { isDevnet } from "@/config/env";
 import { networkConfig } from "@/config/network";
 import type { Owner } from "@/lib/multisig";
 
@@ -73,9 +74,10 @@ export function buildMultisigDeployment({
 }
 
 export function useCreateMultisig() {
-  const { udc } = useUniversalDeployerContract({
-    address: networkConfig.udcAddress as `0x${string}`,
-  });
+  const params = isDevnet
+    ? { address: networkConfig.udcAddress as `0x${string}` }
+    : {};
+  const { udc } = useUniversalDeployerContract(params);
   const { sendAsync, ...rest } = useSendTransaction({});
 
   async function deployMultisigAsync(params: CreateMultisigParams) {
