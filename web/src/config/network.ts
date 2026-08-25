@@ -30,7 +30,7 @@ const devnetConfig: NetworkConfig = {
     "0x2CEED65A4BD731034C01113685C831B01C15D7D432F71AFB1CF1634B53A2125",
   privacyPoolAddress: "",
   multisigClassHash:
-    "0x5859c2d7eba82496d85ee68c409a156f5467c8ca753ca47acf9a98c42734878",
+    "0x5fd9ebaf5712f4f36f8d925e3a8dcac0aafda991cc7f752d9e21f3841faa494",
 };
 
 const sepoliaConfig: NetworkConfig = {
@@ -40,7 +40,7 @@ const sepoliaConfig: NetworkConfig = {
   privacyPoolAddress:
     "0x0254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91",
   multisigClassHash:
-    "0x5859c2d7eba82496d85ee68c409a156f5467c8ca753ca47acf9a98c42734878",
+    "0x5fd9ebaf5712f4f36f8d925e3a8dcac0aafda991cc7f752d9e21f3841faa494",
 };
 
 export const networkConfigs: Record<NetworkType, NetworkConfig> = {
