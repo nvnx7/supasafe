@@ -172,7 +172,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "supersafe"
+name = "supasafe"
 version = "0.1.0"
 dependencies = [
  "openzeppelin",

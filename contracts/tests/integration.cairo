@@ -8,7 +8,7 @@ use snforge_std::signature::SignerTrait;
 use snforge_std::signature::stark_curve::StarkCurveSignerImpl;
 use snforge_std::{start_cheat_caller_address, start_cheat_signature};
 use starknet::ContractAddress;
-use supersafe::hashing::compute_call_set_hash;
+use supasafe::hashing::compute_call_set_hash;
 use super::utils::{deploy_multisig, deploy_privacy, owners_of, sign_as, wrap_call};
 
 #[test]

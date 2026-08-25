@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "supersafe",
+      "name": "supasafe",
       "devDependencies": {
         "@biomejs/biome": "^2.5.10",
         "turbo": "^2.10.11",

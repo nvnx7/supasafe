@@ -1,5 +1,5 @@
 [package]
-name = "supersafe"
+name = "supasafe"
 version = "0.1.0"
 edition = "2024_07"
 
@@ -26,7 +26,7 @@ casm = true
 test-type = "unit"
 
 [[test]]
-name = "supersafe_integrationtest"
+name = "supasafe_integrationtest"
 test-type = "integration"
 source-path = "tests/lib.cairo"
 build-external-contracts = ["privacy::privacy::Privacy"]

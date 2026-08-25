@@ -12,11 +12,11 @@ use snforge_std::{
 use core::num::traits::Zero;
 use starknet::ContractAddress;
 use starknet::account::Call;
-use supersafe::hashing::compute_call_set_hash;
-use supersafe::multisig_account::PrivateMultisigAccount::{
+use supasafe::hashing::compute_call_set_hash;
+use supasafe::multisig_account::PrivateMultisigAccount::{
     EncryptedViewingKey, Event, OwnerUpdated,
 };
-use supersafe::multisig_account::{
+use supasafe::multisig_account::{
     EncryptedViewingKeyInput, ICUSTOM_SIGNATURE_VALIDATION_ID, Owner, ICustomSignatureValidationDispatcher,
     ICustomSignatureValidationDispatcherTrait, IDeployableDispatcher, IDeployableDispatcherTrait,
     IMultisigDispatcher, IMultisigDispatcherTrait,
@@ -625,9 +625,9 @@ fn test_execute_from_outside_rejects_replayed_nonce() {
 fn test_owner_approval_hash_is_stable() {
     let multisig: ContractAddress = 0x1111.try_into().unwrap();
     let owner: ContractAddress = 0x2222.try_into().unwrap();
-    let hash = supersafe::hashing::compute_owner_approval_hash(multisig, owner, 0x3333);
+    let hash = supasafe::hashing::compute_owner_approval_hash(multisig, owner, 0x3333);
     assert(
-        hash == 0x558bcbf66e94816aaad1b84c4b76f6483e9da77d4a6733ba49fb6a033bdf95e,
+        hash == 0x64728c04ece1ac407a0ad712b5a9e4312b0d3e20aca7b9d33f4dc3af66f2f10,
         'approval hash format changed',
     );
 }
@@ -642,17 +642,17 @@ fn test_owner_approval_hash_binds_both_addresses() {
     let owner: ContractAddress = 0x2222.try_into().unwrap();
     let other_owner: ContractAddress = 0x2223.try_into().unwrap();
 
-    let base = supersafe::hashing::compute_owner_approval_hash(multisig, owner, 0x3333);
+    let base = supasafe::hashing::compute_owner_approval_hash(multisig, owner, 0x3333);
     assert(
-        supersafe::hashing::compute_owner_approval_hash(other_multisig, owner, 0x3333) != base,
+        supasafe::hashing::compute_owner_approval_hash(other_multisig, owner, 0x3333) != base,
         'multisig not bound',
     );
     assert(
-        supersafe::hashing::compute_owner_approval_hash(multisig, other_owner, 0x3333) != base,
+        supasafe::hashing::compute_owner_approval_hash(multisig, other_owner, 0x3333) != base,
         'owner not bound',
     );
     assert(
-        supersafe::hashing::compute_owner_approval_hash(multisig, owner, 0x3334) != base,
+        supasafe::hashing::compute_owner_approval_hash(multisig, owner, 0x3334) != base,
         'payload not bound',
     );
 }

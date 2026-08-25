@@ -55,7 +55,7 @@ pub fn compute_call_set_hash(
         .finalize()
 }
 
-const MULTISIG_APPROVAL_SNIP12_NAME: felt252 = 'SuperSafe';
+const MULTISIG_APPROVAL_SNIP12_NAME: felt252 = 'SupaSafe';
 const MULTISIG_APPROVAL_SNIP12_VERSION: felt252 = 1;
 
 const MULTISIG_APPROVAL_TYPE_HASH: felt252 = selector!(

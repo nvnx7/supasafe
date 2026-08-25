@@ -9,11 +9,11 @@ const TARGET_DIR = path.resolve(__dirname, "../target/dev");
 export function loadClass(name: string) {
   const sierraPath = path.join(
     TARGET_DIR,
-    `supersafe_${name}.contract_class.json`,
+    `supasafe_${name}.contract_class.json`,
   );
   const casmPath = path.join(
     TARGET_DIR,
-    `supersafe_${name}.compiled_contract_class.json`,
+    `supasafe_${name}.compiled_contract_class.json`,
   );
   for (const p of [sierraPath, casmPath]) {
     if (!fs.existsSync(p)) {

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "supersafe",
+  title: "supasafe",
   description: "Private multisig accounts on Starknet.",
 };
 

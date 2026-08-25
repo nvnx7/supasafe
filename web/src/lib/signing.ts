@@ -11,7 +11,7 @@ import {
 /// Any drift here silently produces signatures the contract rejects, and nothing on this side
 /// catches it: `test_owner_approval_hash_is_stable` pins the Cairo construction only. Change
 /// either and check the result against that vector by hand.
-const APPROVAL_DOMAIN_NAME = "SuperSafe";
+const APPROVAL_DOMAIN_NAME = "SupaSafe";
 const APPROVAL_DOMAIN_VERSION = "1";
 
 const APPROVAL_TYPES = {

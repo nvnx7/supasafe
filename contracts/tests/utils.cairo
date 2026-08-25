@@ -6,8 +6,8 @@ use snforge_std::signature::stark_curve::{
 use snforge_std::{ContractClassTrait, DeclareResultTrait, declare};
 use starknet::ContractAddress;
 use starknet::account::Call;
-use supersafe::hashing::compute_owner_approval_hash;
-use supersafe::multisig_account::{EncryptedViewingKeyInput, Owner};
+use supasafe::hashing::compute_owner_approval_hash;
+use supasafe::multisig_account::{EncryptedViewingKeyInput, Owner};
 
 pub fn keypair(secret: felt252) -> StarkCurveKeyPair {
     StarkCurveKeyPairImpl::from_secret_key(secret)
