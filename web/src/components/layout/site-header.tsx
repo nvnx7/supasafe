@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PrivacyAccountMenu } from "@/components/privacy/privacy-account-menu";
 import { WalletConnectButton } from "@/components/wallet/wallet-connect-button";
 
 export function SiteHeader() {
@@ -8,7 +9,10 @@ export function SiteHeader() {
         <Link href="/" className="font-semibold tracking-tight">
           supasafe
         </Link>
-        <WalletConnectButton />
+        <div className="flex items-center gap-2">
+          <WalletConnectButton />
+          <PrivacyAccountMenu />
+        </div>
       </div>
     </header>
   );
