@@ -1,7 +1,10 @@
 import {
   type BigNumberish,
+  ec,
+  hash,
   num,
   type Signature,
+  shortString,
   stark,
   type TypedData,
   typedData,
@@ -13,6 +16,22 @@ import {
 /// either and check the result against that vector by hand.
 const APPROVAL_DOMAIN_NAME = "SupaSafe";
 const APPROVAL_DOMAIN_VERSION = "1";
+
+const poseidon = ec.starkCurve.poseidonHashMany;
+const STARKNET_MESSAGE = BigInt(
+  shortString.encodeShortString("StarkNet Message"),
+);
+
+// These hashes are pinned to the exact structures used by `contracts/src/hashing.cairo` and the
+// STRK20 pool. Do not replace this with typedData.getMessageHash: the CallSet domain version is
+// a numeric felt on-chain, while standard typed-data encoding treats it as a shortstring.
+const STARKNET_DOMAIN_TYPE_HASH =
+  0x1ff2f602e42168014d405a94f75e8a93d640751d71d16311266e140d8b0a210n;
+const CALL_TYPE_HASH =
+  0x3635c7f2a7ba93844c0d064e18e487f35ab90f7c39d00f186a781fc3f0c2ca9n;
+const CALL_SET_TYPE_HASH =
+  0x308b7462f924efba15fc992e6827eb3a748fcc79f091914156756437fa22909n;
+const CALL_SET_DOMAIN_NAME = BigInt(shortString.encodeShortString("CallSet"));
 
 const APPROVAL_TYPES = {
   StarknetDomain: [
@@ -26,6 +45,54 @@ const APPROVAL_TYPES = {
     { name: "Hash", type: "felt" },
   ],
 } as const;
+
+export type MultisigCall = {
+  contractAddress: string;
+  entrypoint: string;
+  calldata: string[];
+};
+
+function toFelt(value: BigNumberish) {
+  return num.toBigInt(value);
+}
+
+function hashCall(call: MultisigCall) {
+  return poseidon([
+    CALL_TYPE_HASH,
+    toFelt(call.contractAddress),
+    toFelt(hash.getSelectorFromName(call.entrypoint)),
+    poseidon(call.calldata.map(toFelt)),
+  ]);
+}
+
+/// Mirrors `compute_call_set_hash` in `contracts/src/hashing.cairo` and the STRK20 pool.
+/// This value is the proposal ID and the hash owners approve through `ownerApprovalHash`.
+export function computeCallSetHash(
+  multisig: BigNumberish,
+  calls: MultisigCall[],
+  chainId: BigNumberish,
+  additionalData: BigNumberish[] = [],
+) {
+  const domainHash = poseidon([
+    STARKNET_DOMAIN_TYPE_HASH,
+    CALL_SET_DOMAIN_NAME,
+    1n,
+    toFelt(chainId),
+    1n,
+  ]);
+  const callSetHash = poseidon([
+    CALL_SET_TYPE_HASH,
+    poseidon(calls.map(hashCall)),
+    poseidon(additionalData.map(toFelt)),
+  ]);
+
+  return poseidon([
+    STARKNET_MESSAGE,
+    domainHash,
+    toFelt(multisig),
+    callSetHash,
+  ]);
+}
 
 /// The typed data an owner's wallet signs to approve `hash` for `multisig`.
 export function buildApprovalTypedData(
