@@ -9,7 +9,6 @@ export const DEVNET_CHAIN_ID = "0x4445564e4554"; // "DEVNET" in hex
 export type NetworkConfig = {
   rpcUrl: string;
   chainId: string;
-  udcAddress: string;
   privacyPoolAddress: string;
   supasafeFactoryAddress: string;
   multisigClassHash: string;
@@ -27,8 +26,6 @@ export const devnetChain: Chain = {
 const devnetConfig: NetworkConfig = {
   rpcUrl: rpcUrlDevnet,
   chainId: DEVNET_CHAIN_ID,
-  udcAddress:
-    "0x2CEED65A4BD731034C01113685C831B01C15D7D432F71AFB1CF1634B53A2125",
   privacyPoolAddress: "",
   supasafeFactoryAddress:
     "0x2ee7434e31a72cb405693dd712d6b564ebb9792e3af4a84dda17076d6d3a230",
@@ -39,7 +36,6 @@ const devnetConfig: NetworkConfig = {
 const sepoliaConfig: NetworkConfig = {
   rpcUrl: rpcUrlSepolia,
   chainId: constants.StarknetChainId.SN_SEPOLIA,
-  udcAddress: "",
   privacyPoolAddress:
     "0x0254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91",
   multisigClassHash:
