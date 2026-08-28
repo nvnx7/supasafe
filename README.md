@@ -10,7 +10,7 @@ Supasafe is a Starknet threshold multisig account built for STRK20 private-trans
 | `contracts` | Cairo multisig account contract, deployment scripts, and Scarb/Foundry tests. |
 | `config` | Shared TypeScript and tooling configuration. |
 
-The web app uses `starknet.js`, Starknet Start, and `@starkware-libs/starknet-privacy-sdk`. The contracts use Cairo, Scarb, Starknet Foundry, and the Starknet privacy package.
+The web app uses `starknet.js`, the Foundation Starknet Start v2 stack, and `@starkware-libs/starknet-privacy-sdk` contract helpers. STRK20 transactions use the connected wallet's native privacy API. The contracts use Cairo, Scarb, Starknet Foundry, and the Starknet privacy package.
 
 ## Development
 
