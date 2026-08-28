@@ -1,6 +1,6 @@
 "use client";
 
-import { useAccount } from "@starknet-start/react";
+import { useAccount } from "@starknetfoundation/starknet-start-react";
 import { PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

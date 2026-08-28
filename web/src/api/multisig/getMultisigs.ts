@@ -1,6 +1,6 @@
 "use client";
 
-import { useProvider } from "@starknet-start/react";
+import { useProvider } from "@starknetfoundation/starknet-start-react";
 import { useQuery } from "@tanstack/react-query";
 import { hash, num, type ProviderInterface } from "starknet";
 import { networkConfig } from "@/config/network";

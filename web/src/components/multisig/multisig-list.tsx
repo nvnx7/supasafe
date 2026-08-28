@@ -1,6 +1,6 @@
 "use client";
 
-import { useAccount } from "@starknet-start/react";
+import { useAccount } from "@starknetfoundation/starknet-start-react";
 import { ShieldIcon, TriangleAlertIcon, WalletIcon } from "lucide-react";
 import { useGetMultisigs } from "@/api/multisig";
 import { CreateMultisigButton } from "@/components/multisig/create-multisig-button";

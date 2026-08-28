@@ -1,8 +1,8 @@
 "use client";
 
-import { sepolia } from "@starknet-start/chains";
-import { jsonRpcProvider } from "@starknet-start/providers";
-import { StarknetConfig } from "@starknet-start/react";
+import { sepolia } from "@starknetfoundation/starknet-start-chains";
+import { jsonRpcProvider } from "@starknetfoundation/starknet-start-providers";
+import { StarknetConfig } from "@starknetfoundation/starknet-start-react";
 import type { ReactNode } from "react";
 import { isDevnet } from "@/config/env";
 import { devnetChain, networkConfig } from "@/config/network";

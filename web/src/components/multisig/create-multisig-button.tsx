@@ -1,6 +1,6 @@
 "use client";
 
-import { useAccount } from "@starknet-start/react";
+import { useAccount } from "@starknetfoundation/starknet-start-react";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

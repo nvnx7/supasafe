@@ -1,4 +1,4 @@
-import { type Chain, devnet } from "@starknet-start/chains";
+import { type Chain, devnet } from "@starknetfoundation/starknet-start-chains";
 import { constants } from "starknet";
 import { network, rpcUrlDevnet, rpcUrlSepolia } from "./env";
 

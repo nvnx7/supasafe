@@ -3,7 +3,7 @@
 import {
   useSendTransaction,
   useUniversalDeployerContract,
-} from "@starknet-start/react";
+} from "@starknetfoundation/starknet-start-react";
 import { CallData, hash, stark } from "starknet";
 import { isDevnet } from "@/config/env";
 import { networkConfig } from "@/config/network";
