@@ -1,36 +1,27 @@
 "use client";
 
-import { useProvider } from "@starknet-start/react";
-import { useMutation } from "@tanstack/react-query";
-import {
-  getProvingBlockId,
-  type PrivateTransfersParams,
-  submitCallAndProof,
-} from "./execute";
+import { useStrk20InvokeTransaction } from "@starknetfoundation/starknet-start-react";
+import { num } from "starknet";
 
-export type TransferParams = PrivateTransfersParams & {
+export type TransferParams = {
   token: string;
   amount: bigint;
   recipient: string;
 };
 
 export function useTransfer() {
-  const { provider } = useProvider();
+  const { invokeAsync, ...result } = useStrk20InvokeTransaction();
 
-  return useMutation({
-    mutationKey: ["strk20Transfer"],
-    mutationFn: async (params: TransferParams) => {
-      const provingBlockId = await getProvingBlockId(
-        provider,
-        params.provingBlockId,
-      );
-      const { callAndProof } = await params.transfers
-        .build({ autoDiscover: { channels: "missing", notes: "missing" } })
-        .with(params.token)
-        .transfer({ recipient: params.recipient, amount: params.amount })
-        .execute({ provingBlockId });
-
-      return submitCallAndProof(provider, params.account, callAndProof);
-    },
-  });
+  return {
+    transferAsync: (params: TransferParams) =>
+      invokeAsync([
+        {
+          type: "transfer",
+          token: params.token,
+          amount: num.toHex(params.amount),
+          recipient: params.recipient,
+        },
+      ]),
+    ...result,
+  };
 }

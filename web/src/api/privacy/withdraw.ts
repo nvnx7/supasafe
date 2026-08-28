@@ -1,36 +1,27 @@
 "use client";
 
-import { useProvider } from "@starknet-start/react";
-import { useMutation } from "@tanstack/react-query";
-import {
-  getProvingBlockId,
-  type PrivateTransfersParams,
-  submitCallAndProof,
-} from "./execute";
+import { useStrk20InvokeTransaction } from "@starknetfoundation/starknet-start-react";
+import { num } from "starknet";
 
-export type WithdrawParams = PrivateTransfersParams & {
+export type WithdrawParams = {
   token: string;
   amount: bigint;
   recipient: string;
 };
 
 export function useWithdraw() {
-  const { provider } = useProvider();
+  const { invokeAsync, ...result } = useStrk20InvokeTransaction();
 
-  return useMutation({
-    mutationKey: ["strk20Withdraw"],
-    mutationFn: async (params: WithdrawParams) => {
-      const provingBlockId = await getProvingBlockId(
-        provider,
-        params.provingBlockId,
-      );
-      const { callAndProof } = await params.transfers
-        .build({ autoDiscover: { notes: "missing" } })
-        .with(params.token)
-        .withdraw({ recipient: params.recipient, amount: params.amount })
-        .execute({ provingBlockId });
-
-      return submitCallAndProof(provider, params.account, callAndProof);
-    },
-  });
+  return {
+    withdrawAsync: (params: WithdrawParams) =>
+      invokeAsync([
+        {
+          type: "withdraw",
+          token: params.token,
+          amount: num.toHex(params.amount),
+          recipient: params.recipient,
+        },
+      ]),
+    ...result,
+  };
 }

@@ -1,35 +1,25 @@
 "use client";
 
-import { useProvider } from "@starknet-start/react";
-import { useMutation } from "@tanstack/react-query";
-import {
-  getProvingBlockId,
-  type PrivateTransfersParams,
-  submitCallAndProof,
-} from "./execute";
+import { useStrk20InvokeTransaction } from "@starknetfoundation/starknet-start-react";
+import { num } from "starknet";
 
-export type DepositParams = PrivateTransfersParams & {
+export type DepositParams = {
   token: string;
   amount: bigint;
 };
 
 export function useDeposit() {
-  const { provider } = useProvider();
+  const { invokeAsync, ...result } = useStrk20InvokeTransaction();
 
-  return useMutation({
-    mutationKey: ["strk20Deposit"],
-    mutationFn: async (params: DepositParams) => {
-      const provingBlockId = await getProvingBlockId(
-        provider,
-        params.provingBlockId,
-      );
-      const { callAndProof } = await params.transfers
-        .build()
-        .with(params.token)
-        .deposit({ amount: params.amount })
-        .execute({ provingBlockId });
-
-      return submitCallAndProof(provider, params.account, callAndProof);
-    },
-  });
+  return {
+    depositAsync: (params: DepositParams) =>
+      invokeAsync([
+        {
+          type: "deposit",
+          token: params.token,
+          amount: num.toHex(params.amount),
+        },
+      ]),
+    ...result,
+  };
 }
