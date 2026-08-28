@@ -6,86 +6,58 @@ import { hash, num, type ProviderInterface } from "starknet";
 import { networkConfig } from "@/config/network";
 import type { MultisigSummary } from "@/lib/multisig";
 
-const OWNER_UPDATED_KEY = hash.getSelectorFromName("OwnerUpdated");
+const MULTISIG_OWNER_UPDATED_KEY = hash.getSelectorFromName(
+  "MultisigOwnerUpdated",
+);
 const CHUNK_SIZE = 100;
-
-async function readOwnerAddresses(
-  provider: ProviderInterface,
-  contractAddress: string,
-): Promise<string[] | null> {
-  try {
-    const result = await provider.callContract({
-      contractAddress,
-      entrypoint: "get_owners",
-      calldata: [],
-    });
-    // Span<Owner> flattens to [len, address, public_key, ...]; membership is by address.
-    const count = Number(result[0]);
-    const addresses: string[] = [];
-    for (let i = 0; i < count; i += 1) {
-      addresses.push(result[1 + i * 2] as string);
-    }
-    return addresses;
-  } catch {
-    return null;
-  }
-}
 
 export async function getMultisigs(
   provider: ProviderInterface,
   owner: string,
 ): Promise<MultisigSummary[]> {
   const target = BigInt(owner);
-  const classHash = BigInt(networkConfig.multisigClassHash);
 
-  // OwnerUpdated is emitted once per owner with the owner as its second key, so the
-  // node returns only this owner's multisigs rather than every event on the chain.
-  const thresholds = new Map<string, number>();
+  // The factory emits this only at creation, with the owner as its second key. Filtering by
+  // its known address gives us an indexed creation-time list without scanning every multisig.
+  const multisigs = new Map<string, MultisigSummary>();
   let continuationToken: string | undefined;
   do {
     const page = await provider.getEvents({
       from_block: { block_number: 0 },
       to_block: "latest",
-      keys: [[OWNER_UPDATED_KEY], [num.toHex(target)]],
+      address: networkConfig.supasafeFactoryAddress,
+      keys: [[MULTISIG_OWNER_UPDATED_KEY], [num.toHex(target)]],
       chunk_size: CHUNK_SIZE,
       continuation_token: continuationToken,
     });
 
-    // Oldest first, so a later configuration overwrites an earlier one.
-    // OwnerUpdated data is [public_key, owners_count, threshold]; the owner is a key, not data.
+    // MultisigOwnerUpdated data is [public_key, owners_count, threshold]. The address is its
+    // third key after the event selector and owner key.
     for (const event of page.events) {
+      const address = event.keys[2];
+      if (!address) continue;
       const threshold = Number(event.data[2]);
-      if (Number.isInteger(threshold)) {
-        thresholds.set(num.toHex(event.from_address), threshold);
+      const ownerCount = Number(event.data[1]);
+      if (Number.isInteger(threshold) && Number.isInteger(ownerCount)) {
+        multisigs.set(num.toHex(address), {
+          address: num.toHex(address),
+          threshold,
+          ownerCount,
+        });
       }
     }
 
     continuationToken = page.continuation_token;
   } while (continuationToken);
 
-  // Events persist after an owner is removed, and any contract can emit a matching key,
-  // so membership and authenticity are both confirmed against the chain.
-  const checked = await Promise.all(
-    [...thresholds].map(async ([address, threshold]) => {
-      const [actualClassHash, owners] = await Promise.all([
-        provider.getClassHashAt(address).catch(() => null),
-        readOwnerAddresses(provider, address),
-      ]);
-      if (!actualClassHash || BigInt(actualClassHash) !== classHash)
-        return null;
-      if (!owners?.some((owner) => BigInt(owner) === target)) return null;
-      return { address, threshold, ownerCount: owners.length };
-    }),
-  );
-
-  return checked.filter((multisig) => multisig !== null);
+  return [...multisigs.values()];
 }
 
 export function useGetMultisigs(owner: string | undefined) {
   const { provider } = useProvider();
 
   return useQuery({
-    queryKey: ["multisigs", networkConfig.rpcUrl, owner],
+    queryKey: ["multisigs", networkConfig.supasafeFactoryAddress, owner],
     queryFn: () => getMultisigs(provider, owner as string),
     enabled: Boolean(owner),
   });

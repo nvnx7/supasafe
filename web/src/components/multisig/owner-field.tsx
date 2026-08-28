@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2Icon } from "lucide-react";
+import { CircleCheckIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -9,8 +9,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
-import { truncateAddress } from "@/lib/multisig";
 
 interface OwnerFieldProps {
   index: number;
@@ -19,10 +17,9 @@ interface OwnerFieldProps {
   removable: boolean;
   readOnly?: boolean;
   hint?: string;
-  /// Read off the owner's deployed account; the multisig verifies signatures against it.
-  publicKey?: string | undefined;
-  resolving?: boolean;
   resolveError?: string | undefined;
+  supasafeViewKeyError?: string | undefined;
+  isSupasafeViewKeyRegistered?: boolean;
   onChange: (value: string) => void;
   onRemove: () => void;
 }
@@ -34,15 +31,15 @@ export function OwnerField({
   removable,
   readOnly,
   hint,
-  publicKey,
-  resolving,
   resolveError,
+  supasafeViewKeyError,
+  isSupasafeViewKeyRegistered,
   onChange,
   onRemove,
 }: OwnerFieldProps) {
   const id = `owner-${index}`;
   const message = error ?? resolveError;
-  const invalid = Boolean(message);
+  const invalid = Boolean(message || supasafeViewKeyError);
 
   return (
     <Field data-invalid={invalid || undefined}>
@@ -71,20 +68,19 @@ export function OwnerField({
         </Button>
       </div>
 
-      {resolving ? (
-        <FieldDescription>
-          <Spinner data-icon="inline-start" />
-          Reading signing key from account…
-        </FieldDescription>
-      ) : publicKey ? (
-        <FieldDescription className="font-mono">
-          Signing key {truncateAddress(publicKey, 8)}
+      {isSupasafeViewKeyRegistered ? (
+        <FieldDescription className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+          <CircleCheckIcon className="size-4" aria-hidden="true" />
+          Supasafe view key registered.
         </FieldDescription>
       ) : hint ? (
         <FieldDescription>{hint}</FieldDescription>
       ) : null}
 
       {message ? <FieldError>{message}</FieldError> : null}
+      {supasafeViewKeyError ? (
+        <FieldError>{supasafeViewKeyError}</FieldError>
+      ) : null}
     </Field>
   );
 }

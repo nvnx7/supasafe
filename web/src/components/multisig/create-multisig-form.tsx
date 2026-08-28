@@ -5,8 +5,11 @@ import { PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { num } from "starknet";
-import { useCreateMultisig, useGetOwnerPublicKeys } from "@/api/multisig";
-import { useGetPublicViewKeys } from "@/api/privacy";
+import {
+  useCreateMultisig,
+  useGetOwnerPublicKeys,
+  useGetSupasafePublicViewKeys,
+} from "@/api/multisig";
 import { OwnerField } from "@/components/multisig/owner-field";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +28,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { networkConfig } from "@/config/network";
 import { isDraftValid, validateMultisigDraft } from "@/lib/multisig";
 import { encryptViewKey, generateViewKey } from "@/utils/encryption";
 
@@ -41,17 +43,14 @@ export function CreateMultisigForm() {
 
   const connectedOwner = address ? num.toHex(address) : "";
   const owners = [connectedOwner, ...coOwners];
-  const poolConfigured = Boolean(networkConfig.privacyPoolAddress);
 
   const pubkeyQueries = useGetOwnerPublicKeys(owners);
-  const viewPubkeyQueries = useGetPublicViewKeys(poolConfigured ? owners : []);
+  const ssViewPubkeyQueries = useGetSupasafePublicViewKeys(owners);
 
-  const ownerPublicViewKeys = poolConfigured
-    ? viewPubkeyQueries.map((query) => query.data)
-    : owners.map(() => undefined);
-  const ownerPubViewKeysReady =
-    ownerPublicViewKeys.length === owners.length &&
-    ownerPublicViewKeys.every(Boolean);
+  const ssPublicViewKeys = ssViewPubkeyQueries.map((query) => query.data);
+  const ssPubViewKeysReady =
+    ssPublicViewKeys.length === owners.length &&
+    ssPublicViewKeys.every(Boolean);
 
   // Shrinking the owner set can strand the threshold above the new maximum.
   const effectiveThreshold = Math.min(threshold, owners.length);
@@ -65,7 +64,7 @@ export function CreateMultisigForm() {
     Boolean(address) &&
     isDraftValid(errors) &&
     ownerPubKeysReady &&
-    ownerPubViewKeysReady;
+    ssPubViewKeysReady;
 
   const thresholdItems = owners.map((_, index) => ({
     value: String(index + 1),
@@ -95,14 +94,14 @@ export function CreateMultisigForm() {
 
     // Encrypt multisig view key for each owner
     const encryptedMultisigViewKeys = owners.map((owner, idx) => {
-      const ownerPubVk = ownerPublicViewKeys[idx];
-      if (!ownerPubVk) {
+      const ssPubVk = ssPublicViewKeys[idx];
+      if (!ssPubVk) {
         throw new Error(`Missing public viewing key for ${owner}.`);
       }
 
       const { ephemeralPubkey, ciphertext } = encryptViewKey({
         viewKey: privateMultisigViewKey,
-        recipientPublicKey: ownerPubVk,
+        recipientPublicKey: ssPubVk,
       });
 
       return {
@@ -132,6 +131,13 @@ export function CreateMultisigForm() {
       <FieldGroup>
         {owners.map((owner, index) => {
           const query = pubkeyQueries[index];
+          const viewKeyQuery = ssViewPubkeyQueries[index];
+          const isSupasafeViewKeyRegistered =
+            viewKeyQuery?.data !== null && viewKeyQuery?.data !== undefined;
+          const supasafeViewKeyError =
+            owner && viewKeyQuery?.isFetched && viewKeyQuery.data === null
+              ? "This owner has not registered a Supasafe view key."
+              : undefined;
           return (
             <OwnerField
               // biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
@@ -142,11 +148,11 @@ export function CreateMultisigForm() {
               removable={index > 0}
               readOnly={index === 0}
               hint={index === 0 ? "Connected wallet." : undefined}
-              publicKey={query?.data}
-              resolving={query?.isFetching}
               resolveError={
                 query?.error instanceof Error ? query.error.message : undefined
               }
+              supasafeViewKeyError={supasafeViewKeyError}
+              isSupasafeViewKeyRegistered={isSupasafeViewKeyRegistered}
               onChange={(value) => updateCoOwner(index - 1, value)}
               onRemove={() => removeCoOwner(index - 1)}
             />
@@ -194,18 +200,6 @@ export function CreateMultisigForm() {
             <FieldError>{errors.threshold}</FieldError>
           ) : null}
         </Field>
-
-        {!poolConfigured ? (
-          <FieldError>
-            No privacy pool is configured for this network — every owner needs a
-            registered viewing key before a multisig can be created.
-          </FieldError>
-        ) : !ownerPubViewKeysReady ? (
-          <FieldDescription>
-            Every owner must register a viewing key with the privacy pool before
-            this multisig can be created.
-          </FieldDescription>
-        ) : null}
 
         {!address ? (
           <FieldError>Connect a wallet to create a multisig.</FieldError>

@@ -1,11 +1,11 @@
 "use client";
 
 import {
+  useProvider,
   useSendTransaction,
-  useUniversalDeployerContract,
 } from "@starknetfoundation/starknet-start-react";
 import { CallData, hash, stark } from "starknet";
-import { isDevnet } from "@/config/env";
+import { supasafeFactoryContract } from "@/api/contracts";
 import { networkConfig } from "@/config/network";
 import type { Owner } from "@/lib/multisig";
 
@@ -26,7 +26,6 @@ export type CreateMultisigParams = {
   };
 };
 
-// The UDC deploys from address zero, so this is the address that lands on-chain.
 export function buildMultisigDeployment({
   owners,
   threshold,
@@ -61,37 +60,41 @@ export function buildMultisigDeployment({
   });
 
   return {
-    classHash,
     constructorCalldata,
-    addressSalt: salt,
+    salt,
     contractAddress: hash.calculateContractAddressFromHash(
       salt,
       classHash,
       constructorCalldata,
-      0,
+      networkConfig.supasafeFactoryAddress,
     ),
   };
 }
 
 export function useCreateMultisig() {
-  const params = isDevnet
-    ? { address: networkConfig.udcAddress as `0x${string}` }
-    : {};
-  const { udc } = useUniversalDeployerContract(params);
+  const { provider } = useProvider();
   const { sendAsync, ...rest } = useSendTransaction({});
 
   async function deployMultisigAsync(params: CreateMultisigParams) {
-    if (!udc) throw new Error("Universal Deployer unavailable.");
-
     const salt = params.salt ?? BigInt(stark.randomAddress());
     const deployment = buildMultisigDeployment({ ...params, salt });
 
-    const call = udc.populate("deploy_contract", [
-      deployment.classHash,
-      deployment.addressSalt,
-      false,
-      deployment.constructorCalldata,
-    ]);
+    const call = supasafeFactoryContract(provider).populate("create_multisig", {
+      owners: params.owners.map(({ address, publicKey }) => ({
+        address,
+        public_key: publicKey,
+      })),
+      threshold: params.threshold,
+      viewing_public_key: params.viewingKey.publicKey,
+      encrypted: params.viewingKey.encrypted.map(
+        ({ owner, ephemeralPubkey, ciphertext }) => ({
+          owner,
+          ephemeral_pubkey: ephemeralPubkey,
+          ciphertext,
+        }),
+      ),
+      salt,
+    });
     const { transaction_hash } = await sendAsync([call]);
 
     return { ...deployment, transactionHash: transaction_hash };
