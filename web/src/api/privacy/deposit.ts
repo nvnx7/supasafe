@@ -12,6 +12,10 @@ export type DepositParams = {
   amount: bigint;
 };
 
+export type DepositToMultisigParams = DepositParams & {
+  multisigAddress: string;
+};
+
 export type CreateMultisigDepositProposalParams = DepositParams & {
   multisig: MultisigDetail;
   owner: string;
@@ -30,6 +34,32 @@ export function useDeposit() {
           type: "deposit",
           token: params.token,
           amount: num.toHex(params.amount),
+        },
+      ]),
+    ...result,
+  };
+}
+
+export function useDepositToMultisig() {
+  const { invokeAsync, ...result } = useStrk20InvokeTransaction();
+
+  return {
+    depositToMultisigAsync: ({
+      token,
+      amount,
+      multisigAddress,
+    }: DepositToMultisigParams) =>
+      invokeAsync([
+        {
+          type: "deposit",
+          token,
+          amount: num.toHex(amount),
+        },
+        {
+          type: "transfer",
+          token,
+          amount: num.toHex(amount),
+          recipient: multisigAddress,
         },
       ]),
     ...result,

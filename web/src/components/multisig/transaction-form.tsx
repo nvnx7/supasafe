@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { useDepositToMultisig } from "@/api/privacy";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -25,6 +26,7 @@ import { useProposeTransaction } from "@/hooks/use-propose-transaction";
 import {
   isValidAddress,
   isValidAmount,
+  parseTokenAmount,
   type TransactionKind,
 } from "@/lib/multisig";
 
@@ -34,7 +36,7 @@ const KINDS: Record<
 > = {
   deposit: {
     needsRecipient: false,
-    cta: "Propose deposit",
+    cta: "Deposit",
     hint: "Moves funds from the connected wallet into this multisig.",
     recipientLabel: "",
   },
@@ -61,6 +63,11 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
   const { needsRecipient, cta, hint, recipientLabel } = KINDS[kind];
   const { multisigAddress: address } = useParams<{ multisigAddress: string }>();
   const { propose, isPending, error } = useProposeTransaction();
+  const {
+    depositToMultisigAsync,
+    isPending: isDepositing,
+    error: depositError,
+  } = useDepositToMultisig();
 
   const [token, setToken] = useState(TOKENS[0]?.address ?? "");
   const [amount, setAmount] = useState("");
@@ -80,6 +87,19 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
     event.preventDefault();
     setSubmitted(true);
     if (!valid) return;
+
+    if (kind === "deposit") {
+      const selectedToken = TOKENS.find((entry) => entry.address === token);
+      if (!selectedToken) return;
+
+      await depositToMultisigAsync({
+        token,
+        amount: parseTokenAmount(amount, selectedToken.decimals),
+        multisigAddress: address,
+      });
+      return;
+    }
+
     await propose({
       kind,
       multisigAddress: address,
@@ -153,11 +173,19 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
 
         <FieldDescription>{hint}</FieldDescription>
 
-        {error ? <FieldError>{error}</FieldError> : null}
+        {error || depositError ? (
+          <FieldError>
+            {depositError instanceof Error
+              ? depositError.message
+              : (depositError ?? error)}
+          </FieldError>
+        ) : null}
 
-        <Button type="submit" disabled={isPending}>
-          {isPending ? <Spinner data-icon="inline-start" /> : null}
-          {isPending ? "Proposing…" : cta}
+        <Button type="submit" disabled={isPending || isDepositing}>
+          {isPending || isDepositing ? (
+            <Spinner data-icon="inline-start" />
+          ) : null}
+          {isDepositing ? "Depositing…" : isPending ? "Proposing…" : cta}
         </Button>
       </FieldGroup>
     </form>

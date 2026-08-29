@@ -6,7 +6,25 @@ import { networkConfig } from "@/config/network";
 type CreateMultisigPrivateTransfersParams = {
   multisigAddress: string;
   viewingKey: bigint;
-  signer: SignerInterface;
+  signer?: SignerInterface;
+};
+
+const readOnlySigner: SignerInterface = {
+  async signTransaction() {
+    throw new Error("This STRK20 client is read-only.");
+  },
+  async getPubKey() {
+    throw new Error("This STRK20 client is read-only.");
+  },
+  async signMessage() {
+    throw new Error("This STRK20 client is read-only.");
+  },
+  async signDeclareTransaction() {
+    throw new Error("This STRK20 client is read-only.");
+  },
+  async signDeployAccountTransaction() {
+    throw new Error("This STRK20 client is read-only.");
+  },
 };
 
 export function createMultisigPrivateTransfers({
@@ -19,7 +37,7 @@ export function createMultisigPrivateTransfers({
   }
 
   return createPrivateTransfers({
-    account: { address: multisigAddress, signer },
+    account: { address: multisigAddress, signer: signer ?? readOnlySigner },
     viewingKeyProvider: { getViewingKey: async () => viewingKey },
     provingProvider: {
       url: proverUrl,

@@ -1,3 +1,4 @@
+import { MultisigBalances } from "@/components/multisig/multisig-balances";
 import { MultisigOverview } from "@/components/multisig/multisig-overview";
 import { MultisigProposalList } from "@/components/multisig/multisig-proposal-list";
 import { SignerList } from "@/components/multisig/signer-list";
@@ -9,6 +10,7 @@ export default function MultisigDetailPage() {
       <MultisigOverview />
       <div className="grid gap-6 md:grid-cols-2">
         <SignerList />
+        <MultisigBalances />
         <TransactionPanel />
         <MultisigProposalList />
       </div>

@@ -23,7 +23,8 @@ export function TransactionPanel() {
       <CardHeader>
         <CardTitle>New transaction</CardTitle>
         <CardDescription>
-          Proposals collect owner signatures until the threshold is met.
+          Deposits use the connected wallet. Other transactions collect owner
+          signatures until the threshold is met.
         </CardDescription>
       </CardHeader>
       <CardContent>

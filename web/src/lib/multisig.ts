@@ -61,6 +61,17 @@ export function isValidAmount(value: string): boolean {
   return Number(trimmed) > 0;
 }
 
+export function parseTokenAmount(value: string, decimals: number): bigint {
+  const [whole = "", fraction = ""] = value.trim().split(".");
+  if (fraction.length > decimals) {
+    throw new Error(`Amount supports at most ${decimals} decimal places.`);
+  }
+
+  const base = 10n ** BigInt(decimals);
+  const fractionValue = fraction.padEnd(decimals, "0");
+  return BigInt(whole) * base + BigInt(fractionValue || "0");
+}
+
 export function isValidAddress(value: string): boolean {
   return /^0x[0-9a-fA-F]{1,64}$/.test(value.trim());
 }
