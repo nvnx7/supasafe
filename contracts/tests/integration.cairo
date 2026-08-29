@@ -69,6 +69,8 @@ fn test_privacy_pool_rejects_multisig_with_insufficient_signatures() {
     let safe_dispatcher = IClientSafeDispatcher { contract_address: privacy_address };
     match safe_dispatcher.__execute__(calls) {
         Result::Ok(_) => core::panic_with_felt252('expected rejection'),
-        Result::Err(panic_data) => assert(*panic_data.at(0) == INVALID_SIGNATURE, *panic_data.at(0)),
+        Result::Err(panic_data) => assert(
+            *panic_data.at(0) == INVALID_SIGNATURE, *panic_data.at(0),
+        ),
     }
 }

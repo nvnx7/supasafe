@@ -82,7 +82,7 @@ pub fn default_encrypted_viewing_keys(owners: Span<Owner>) -> Span<EncryptedView
                 },
             );
         i += 1;
-    };
+    }
     encrypted.span()
 }
 

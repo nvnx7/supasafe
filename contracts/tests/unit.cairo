@@ -1,3 +1,4 @@
+use core::num::traits::Zero;
 use openzeppelin::account::extensions::src9::snip12_utils::OutsideExecutionStructHash;
 use openzeppelin::interfaces::accounts::{ISRC6Dispatcher, ISRC6DispatcherTrait, ISRC6_ID};
 use openzeppelin::interfaces::introspection::{ISRC5Dispatcher, ISRC5DispatcherTrait};
@@ -9,17 +10,14 @@ use snforge_std::{
     EventSpyAssertionsTrait, spy_events, start_cheat_block_timestamp, start_cheat_caller_address,
     start_cheat_signature, start_cheat_transaction_hash, stop_cheat_caller_address,
 };
-use core::num::traits::Zero;
 use starknet::ContractAddress;
 use starknet::account::Call;
 use supasafe::hashing::compute_call_set_hash;
-use supasafe::multisig_account::PrivateMultisigAccount::{
-    EncryptedViewingKey, Event, OwnerUpdated,
-};
+use supasafe::multisig_account::PrivateMultisigAccount::{EncryptedViewingKey, Event, OwnerUpdated};
 use supasafe::multisig_account::{
-    EncryptedViewingKeyInput, ICUSTOM_SIGNATURE_VALIDATION_ID, Owner, ICustomSignatureValidationDispatcher,
+    EncryptedViewingKeyInput, ICUSTOM_SIGNATURE_VALIDATION_ID, ICustomSignatureValidationDispatcher,
     ICustomSignatureValidationDispatcherTrait, IDeployableDispatcher, IDeployableDispatcherTrait,
-    IMultisigDispatcher, IMultisigDispatcherTrait,
+    IMultisigDispatcher, IMultisigDispatcherTrait, Owner,
 };
 use super::utils::{
     assert_deploy_fails_with, deploy_multisig, deploy_multisig_with_viewing_key, keypair,
@@ -535,9 +533,7 @@ fn set_owners_outside_execution(
         execute_before: 0xffffffff,
         calls: array![
             Call {
-                to: contract_address,
-                selector: selector!("set_owners"),
-                calldata: calldata.span(),
+                to: contract_address, selector: selector!("set_owners"), calldata: calldata.span(),
             },
         ]
             .span(),

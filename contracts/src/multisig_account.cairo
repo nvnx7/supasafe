@@ -86,7 +86,7 @@ pub mod PrivateMultisigAccount {
         StoragePointerWriteAccess,
     };
     use starknet::{
-        ContractAddress, get_caller_address, get_contract_address, get_tx_info, VALIDATED,
+        ContractAddress, VALIDATED, get_caller_address, get_contract_address, get_tx_info,
     };
     use crate::hashing::{approval_context, compute_call_set_hash, owner_approval_hash};
     use super::{
@@ -260,7 +260,7 @@ pub mod PrivateMultisigAccount {
             while i < count {
                 owners.append(self.owners.read(i));
                 i += 1;
-            };
+            }
             owners.span()
         }
 
@@ -357,17 +357,17 @@ pub mod PrivateMultisigAccount {
                     // twice, since strictly-increasing indices only stop a slot being reused.
                     assert(other.public_key != owner.public_key, 'DUPLICATE_OWNER_KEY');
                     j += 1;
-                };
+                }
                 self.owners.write(i, owner);
                 i += 1;
-            };
+            }
 
             let old_count = self.owners_count.read();
             let mut k = new_count;
             while k < old_count {
                 self.owners.write(k, Owner { address: Zero::zero(), public_key: 0 });
                 k += 1;
-            };
+            }
 
             self.owners_count.write(new_count);
             self.threshold.write(threshold);
@@ -375,14 +375,15 @@ pub mod PrivateMultisigAccount {
             let mut i: u32 = 0;
             while i < new_count {
                 let owner = *owners.at(i);
-                self.emit(
-                    OwnerUpdated {
-                        owner: owner.address,
-                        public_key: owner.public_key,
-                        owners_count: new_count,
-                        threshold,
-                    },
-                );
+                self
+                    .emit(
+                        OwnerUpdated {
+                            owner: owner.address,
+                            public_key: owner.public_key,
+                            owners_count: new_count,
+                            threshold,
+                        },
+                    );
                 i += 1;
             };
         }
@@ -416,9 +417,7 @@ pub mod PrivateMultisigAccount {
             let mut i: u32 = 0;
             while i < sig_count {
                 let owner_index_felt: felt252 = *signature.pop_front().unwrap();
-                let owner_index: u32 = owner_index_felt
-                    .try_into()
-                    .expect('INVALID_OWNER_INDEX');
+                let owner_index: u32 = owner_index_felt.try_into().expect('INVALID_OWNER_INDEX');
                 let r: felt252 = *signature.pop_front().unwrap();
                 let s: felt252 = *signature.pop_front().unwrap();
 
@@ -434,7 +433,7 @@ pub mod PrivateMultisigAccount {
                     valid_count += 1;
                 }
                 i += 1;
-            };
+            }
 
             valid_count >= threshold
         }
