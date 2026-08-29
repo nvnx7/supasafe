@@ -2,6 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { useGetMultisig } from "@/api/multisig";
+import { useGetPublicViewKey } from "@/api/privacy";
+import { ActivateMultisigButton } from "@/components/multisig/activate-multisig-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -17,6 +19,7 @@ import { truncateAddress } from "@/lib/multisig";
 export function MultisigOverview() {
   const { multisigAddress } = useParams<{ multisigAddress: string }>();
   const { data: multisig, isLoading } = useGetMultisig(multisigAddress);
+  const { data: poolViewKey } = useGetPublicViewKey(multisigAddress);
 
   if (isLoading || !multisig) {
     return <Skeleton className="h-32 w-full" />;
@@ -32,9 +35,14 @@ export function MultisigOverview() {
           {truncateAddress(address, 10)}
         </CardDescription>
         <CardAction>
-          <Badge variant="secondary">
-            {threshold} of {owners.length}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">
+              {threshold} of {owners.length}
+            </Badge>
+            {poolViewKey === null ? (
+              <ActivateMultisigButton multisig={multisig} />
+            ) : null}
+          </div>
         </CardAction>
       </CardHeader>
       <CardContent>
