@@ -3,7 +3,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { num } from "starknet";
 import { networkConfig } from "@/config/network";
-import type { MultisigProposal } from "@/lib/multisig-proposal-provider";
+import type {
+  MultisigProposal,
+  MultisigProposalDisplay,
+} from "@/lib/multisig-proposal-provider";
 import { computeCallSetHash, type MultisigCall } from "@/lib/signing";
 import { multisigProposalProvider } from "./provider";
 
@@ -13,6 +16,7 @@ export type CreateProposalParams = {
   threshold: number;
   calls: MultisigCall[];
   additionalData?: string[];
+  display: MultisigProposalDisplay;
 };
 
 export function buildProposal({
@@ -21,6 +25,7 @@ export function buildProposal({
   threshold,
   calls,
   additionalData = [],
+  display,
 }: CreateProposalParams): MultisigProposal {
   const now = Date.now();
   const hash = num.toHex(
@@ -39,6 +44,7 @@ export function buildProposal({
     threshold,
     calls,
     additionalData,
+    display,
     signatures: [],
     status: "pending",
     createdAt: now,
