@@ -135,6 +135,31 @@ export interface OwnerSignature {
   signature: Signature;
 }
 
+/// Extracts the bare STARK ECDSA pair this multisig's Cairo verifier accepts.
+///
+/// Ready/Argent v0.4 returns its typed-data signature as
+/// `[1, 0, stark_public_key, r, s]`. Its own `is_valid_signature` accepts either that envelope
+/// or the final `[r, s]`, but `check_ecdsa_signature` only accepts the latter. Other wrapped
+/// formats are deliberately rejected until we implement their particular verification scheme.
+export function extractRawEcdsaSignature(
+  signature: Signature,
+): [string, string] {
+  const formatted = stark.formatSignature(signature).map(num.toHex);
+  if (formatted.length === 2)
+    return [formatted[0] as string, formatted[1] as string];
+
+  const isReadyArgentStarkEnvelope =
+    formatted.length === 5 && formatted[0] === "0x1" && formatted[1] === "0x0";
+  if (isReadyArgentStarkEnvelope) {
+    return [formatted[3] as string, formatted[4] as string];
+  }
+
+  throw new Error(
+    "Owner produced a signature this multisig cannot use; it requires a bare [r, s] " +
+      "or the Ready/Argent STARK signature envelope.",
+  );
+}
+
 /// Packs collected approvals into the contract's bundle encoding:
 /// `[sig_count, owner_index, r, s, ...]`.
 ///
@@ -152,16 +177,8 @@ export function packSignatureBundle(signatures: OwnerSignature[]): string[] {
     }
     seen.add(ownerIndex);
 
-    // The contract verifies raw ECDSA against a stored key, so anything an account wraps around
-    // its signature is unusable. Fail here rather than let it silently miss the threshold.
-    const [r, s] = stark.formatSignature(signature);
-    if (r === undefined || s === undefined) {
-      throw new Error(
-        `Owner ${ownerIndex} produced a signature this multisig cannot use; ` +
-          "it requires a bare [r, s].",
-      );
-    }
-    bundle.push(num.toHex(ownerIndex), num.toHex(r), num.toHex(s));
+    const [r, s] = extractRawEcdsaSignature(signature);
+    bundle.push(num.toHex(ownerIndex), r, s);
   }
 
   return bundle;
