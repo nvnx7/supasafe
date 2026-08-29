@@ -1,3 +1,5 @@
+import type { ProofInvocation } from "@starkware-libs/starknet-privacy-sdk";
+
 export type MultisigProposalStatus = "pending" | "ready" | "executed";
 
 export type MultisigProposalCall = {
@@ -12,6 +14,15 @@ export type MultisigProposalSignature = {
   signedAt: number;
 };
 
+export type MultisigProposalDisplay = {
+  kind: string;
+  title: string;
+  description: string;
+  token?: { symbol: string; address: string };
+  amount?: string;
+  recipient?: string;
+};
+
 export type MultisigProposal = {
   hash: string;
   multisigAddress: string;
@@ -19,6 +30,9 @@ export type MultisigProposal = {
   threshold: number;
   calls: MultisigProposalCall[];
   additionalData: string[];
+  /// Registration includes SDK-generated randomness, so retain the exact invocation owners approved.
+  proofInvocation?: ProofInvocation;
+  display: MultisigProposalDisplay;
   signatures: MultisigProposalSignature[];
   status: MultisigProposalStatus;
   createdAt: number;
@@ -31,6 +45,7 @@ export type MultisigProposalSummary = Pick<
   | "multisigAddress"
   | "threshold"
   | "status"
+  | "display"
   | "createdAt"
   | "updatedAt"
 > & {
@@ -48,6 +63,7 @@ export interface MultisigProposalProvider {
     proposalHash: string;
     signature: MultisigProposalSignature;
   }): Promise<void>;
+  markExecuted(proposalHash: string): Promise<void>;
 }
 
 const STORAGE_KEY = "supasafe:multisig-proposals:v1";
@@ -58,6 +74,9 @@ function normalizeAddress(address: string) {
 
 function normalizeProposal(proposal: MultisigProposal): MultisigProposal {
   if (!proposal.hash) throw new Error("Proposal hash is required.");
+  if (!proposal.display?.title || !proposal.display.description) {
+    throw new Error("Proposal display details are required.");
+  }
   if (!Number.isInteger(proposal.threshold) || proposal.threshold < 1) {
     throw new Error("Proposal threshold must be a positive integer.");
   }
@@ -77,6 +96,29 @@ function normalizeProposal(proposal: MultisigProposal): MultisigProposal {
       calldata: [...call.calldata],
     })),
     additionalData: [...proposal.additionalData],
+    ...(proposal.proofInvocation
+      ? {
+          proofInvocation: {
+            ...proposal.proofInvocation,
+            calldata: [...proposal.proofInvocation.calldata],
+            signature: [...proposal.proofInvocation.signature],
+          },
+        }
+      : {}),
+    display: {
+      ...proposal.display,
+      ...(proposal.display.token
+        ? {
+            token: {
+              ...proposal.display.token,
+              address: normalizeAddress(proposal.display.token.address),
+            },
+          }
+        : {}),
+      ...(proposal.display.recipient
+        ? { recipient: normalizeAddress(proposal.display.recipient) }
+        : {}),
+    },
     signatures: proposal.signatures.map((signature) => ({
       ...signature,
       owner: normalizeAddress(signature.owner),
@@ -133,6 +175,7 @@ export class LocalStorageMultisigProposalProvider
         multisigAddress: proposal.multisigAddress,
         threshold: proposal.threshold,
         status: proposal.status,
+        display: proposal.display,
         createdAt: proposal.createdAt,
         updatedAt: proposal.updatedAt,
         signatureCount: proposal.signatures.length,
@@ -194,6 +237,19 @@ export class LocalStorageMultisigProposalProvider
     }
     proposal.updatedAt = Date.now();
 
+    this.write(proposals);
+  }
+
+  async markExecuted(proposalHash: string): Promise<void> {
+    const proposals = this.read();
+    const proposal = proposals.find((entry) => entry.hash === proposalHash);
+    if (!proposal) throw new Error("Proposal was not found.");
+    if (proposal.signatures.length < proposal.threshold) {
+      throw new Error("Proposal does not have enough approvals.");
+    }
+
+    proposal.status = "executed";
+    proposal.updatedAt = Date.now();
     this.write(proposals);
   }
 
