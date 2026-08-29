@@ -18,6 +18,8 @@ import {
 
 type Status = "idle" | "signing" | "ready" | "error";
 
+const pendingDerivations = new Map<string, Promise<SupasafeViewKey>>();
+
 function contextKey(address: string) {
   return [
     networkConfig.chainId,
@@ -45,19 +47,33 @@ export function useSupasafeViewKey() {
       chainId: networkConfig.chainId,
       factoryAddress: networkConfig.supasafeFactoryAddress,
     };
+    const key = contextKey(owner);
 
     setStatus("signing");
     setError(null);
 
     try {
-      const signature = (await signTypedDataAsyncRef.current(
-        buildSupasafeViewKeyTypedData(
-          context.chainId,
-          context.factoryAddress,
-        ) as unknown as UseSignTypedDataArgs,
-      )) as Signature;
-      const derived = deriveSupasafeViewKey(signature);
-      saveSupasafeViewKey(context, derived);
+      let pending = pendingDerivations.get(key);
+      if (!pending) {
+        pending = (async () => {
+          const signature = (await signTypedDataAsyncRef.current(
+            buildSupasafeViewKeyTypedData(
+              context.chainId,
+              context.factoryAddress,
+            ) as unknown as UseSignTypedDataArgs,
+          )) as Signature;
+          const derived = deriveSupasafeViewKey(signature);
+          saveSupasafeViewKey(context, derived);
+          return derived;
+        })();
+        pendingDerivations.set(key, pending);
+        void pending.then(
+          () => pendingDerivations.delete(key),
+          () => pendingDerivations.delete(key),
+        );
+      }
+
+      const derived = await pending;
       setViewKey(derived);
       setStatus("ready");
     } catch (reason) {
