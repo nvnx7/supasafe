@@ -6,7 +6,6 @@ import type { constants, Signature } from "starknet";
 import { indexerUrl, proverUrl } from "@/config/env";
 import { networkConfig } from "@/config/network";
 import type { MultisigDetail } from "@/lib/multisig";
-import { logApprovalSignatureDiagnostics } from "@/lib/multisig-approval-diagnostics";
 import { createMultisigProposalSigner } from "@/lib/multisig-proposal-signer";
 import { buildProposal } from "./createProposal";
 import { multisigProposalProvider } from "./provider";
@@ -70,15 +69,6 @@ export async function createStrk20RegistrationProposal({
   if (proposal.hash !== payload.hash) {
     throw new Error("SDK call-set hash did not match the proposal hash.");
   }
-
-  logApprovalSignatureDiagnostics({
-    multisig,
-    owner,
-    callSetHash: BigInt(payload.hash),
-    signature: payload.signature,
-    calls: payload.calls,
-    chainId: networkConfig.chainId,
-  });
 
   proposal.signatures = [
     {

@@ -8,10 +8,8 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios, { isAxiosError } from "axios";
 import { type constants, num } from "starknet";
-import { getMultisig, isMultisigSignatureValid } from "@/api/multisig";
 import { indexerUrl, proverUrl } from "@/config/env";
 import { networkConfig } from "@/config/network";
-import { logApprovalPreflightDiagnostics } from "@/lib/multisig-approval-diagnostics";
 import type { MultisigProposal } from "@/lib/multisig-proposal-provider";
 import { packSignatureBundle } from "@/lib/signing";
 import { multisigProposalProvider } from "./provider";
@@ -87,26 +85,6 @@ export function useExecuteStrk20RegistrationProposal() {
           return { ownerIndex, signature: entry.signature };
         }),
       );
-      const signatureIsValid = await isMultisigSignatureValid(
-        provider,
-        proposal.multisigAddress,
-        proposal.calls,
-        signature,
-        proposal.additionalData,
-      );
-      const multisig = await getMultisig(provider, proposal.multisigAddress);
-      logApprovalPreflightDiagnostics({
-        multisig,
-        proposal,
-        packedSignature: signature,
-        isValid: signatureIsValid,
-        chainId: networkConfig.chainId,
-      });
-      if (!signatureIsValid) {
-        console.warn(
-          "Supasafe approval preflight did not validate, continuing with the SDK's exact invocation.",
-        );
-      }
       const provingBlockId = Math.max(
         0,
         (await provider.getBlockNumber()) - 10,
@@ -132,15 +110,6 @@ export function useExecuteStrk20RegistrationProposal() {
         data: callAndProof.proof.data,
         proofFacts: callAndProof.proof.proofFacts.map(num.toHex),
       };
-      console.info("Supasafe STRK20 submission metadata", {
-        call: {
-          contractAddress: call.contractAddress,
-          entrypoint: call.entrypoint,
-          calldataLength: call.calldata.length,
-        },
-        proofDataLength: proof.data.length,
-        proofFactsCount: proof.proofFacts.length,
-      });
       let data: { transactionHash?: string };
       try {
         ({ data } = await axios.post<{ transactionHash?: string }>(
