@@ -20,6 +20,7 @@
     "@starknetfoundation/starknet-start-react": "2.0.0",
     "@starkware-libs/starknet-privacy-sdk": "0.14.3-rc.5",
     "@tanstack/react-query": "^5.102.0",
+    "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.33.0",
