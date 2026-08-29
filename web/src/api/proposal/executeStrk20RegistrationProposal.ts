@@ -1,14 +1,12 @@
 "use client";
 
-import {
-  useProvider,
-  useSendTransaction,
-} from "@starknetfoundation/starknet-start-react";
+import { useProvider } from "@starknetfoundation/starknet-start-react";
 import {
   createEmptyRegistry,
   createPrivateTransfers,
 } from "@starkware-libs/starknet-privacy-sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axios, { isAxiosError } from "axios";
 import { type constants, num } from "starknet";
 import { getMultisig, isMultisigSignatureValid } from "@/api/multisig";
 import { indexerUrl, proverUrl } from "@/config/env";
@@ -25,7 +23,6 @@ export type ExecuteStrk20RegistrationProposalParams = {
 
 export function useExecuteStrk20RegistrationProposal() {
   const { provider } = useProvider();
-  const { sendAsync } = useSendTransaction({});
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -110,13 +107,17 @@ export function useExecuteStrk20RegistrationProposal() {
           "Supasafe approval preflight did not validate, continuing with the SDK's exact invocation.",
         );
       }
+      const provingBlockId = Math.max(
+        0,
+        (await provider.getBlockNumber()) - 10,
+      );
       const { callAndProof } = await transfers.executeWithInvocation(
         {
           invocation: { ...proposal.proofInvocation, signature },
           registry: createEmptyRegistry(),
           warnings: [],
         },
-        "latest",
+        provingBlockId,
       );
       if (!Array.isArray(callAndProof.call.calldata)) {
         throw new Error("SDK returned a STRK20 call with non-array calldata.");
@@ -129,8 +130,7 @@ export function useExecuteStrk20RegistrationProposal() {
       };
       const proof = {
         data: callAndProof.proof.data,
-        output: callAndProof.proof.output.map(num.toHex),
-        proof_facts: callAndProof.proof.proofFacts.map(num.toHex),
+        proofFacts: callAndProof.proof.proofFacts.map(num.toHex),
       };
       console.info("Supasafe STRK20 submission metadata", {
         call: {
@@ -139,17 +139,27 @@ export function useExecuteStrk20RegistrationProposal() {
           calldataLength: call.calldata.length,
         },
         proofDataLength: proof.data.length,
-        proofOutputLength: proof.output.length,
-        proofFactsCount: proof.proof_facts.length,
+        proofFactsCount: proof.proofFacts.length,
       });
-      const transaction = await sendAsync({
-        calls: [call],
-        proof,
-      });
+      let data: { transactionHash?: string };
+      try {
+        ({ data } = await axios.post<{ transactionHash?: string }>(
+          "/api/relay",
+          { call, proof },
+        ));
+      } catch (error) {
+        if (isAxiosError<{ error?: string }>(error)) {
+          throw new Error(error.response?.data?.error ?? error.message);
+        }
+        throw error;
+      }
+      if (!data.transactionHash) {
+        throw new Error("The relay did not return a transaction hash.");
+      }
 
-      await provider.waitForTransaction(transaction.transaction_hash);
+      await provider.waitForTransaction(data.transactionHash);
       await multisigProposalProvider.markExecuted(proposal.hash);
-      return transaction;
+      return { transaction_hash: data.transactionHash };
     },
     onSuccess: async (_transaction, variables) => {
       await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
