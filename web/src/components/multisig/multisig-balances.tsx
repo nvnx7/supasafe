@@ -110,9 +110,7 @@ export function MultisigBalances() {
           </p>
         ) : null}
         {balances.error ? (
-          <p className="text-sm text-destructive">
-            Could not discover private balances.
-          </p>
+          <p className="text-sm text-destructive">{balances.error.message}</p>
         ) : null}
         {balances.data ? (
           <div className="flex flex-col gap-3">

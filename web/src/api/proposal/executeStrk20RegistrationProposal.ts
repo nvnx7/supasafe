@@ -6,12 +6,12 @@ import { executeMultisigStrk20Proposal } from "@/api/privacy";
 import type { MultisigProposal } from "@/lib/multisig-proposal-provider";
 import { multisigProposalProvider } from "./provider";
 
-export type ExecuteStrk20RegistrationProposalParams = {
+export type ExecuteMultisigStrk20ProposalParams = {
   proposal: MultisigProposal;
   viewingKey: bigint;
 };
 
-export function useExecuteStrk20RegistrationProposal() {
+export function useExecuteMultisigStrk20Proposal() {
   const { provider } = useProvider();
   const queryClient = useQueryClient();
 
@@ -19,10 +19,7 @@ export function useExecuteStrk20RegistrationProposal() {
     mutationFn: async ({
       proposal,
       viewingKey,
-    }: ExecuteStrk20RegistrationProposalParams) => {
-      if (proposal.display.kind !== "strk20-registration") {
-        throw new Error("This proposal type cannot be executed yet.");
-      }
+    }: ExecuteMultisigStrk20ProposalParams) => {
       const transactionHash = await executeMultisigStrk20Proposal({
         provider,
         proposal,
@@ -41,7 +38,7 @@ export function useExecuteStrk20RegistrationProposal() {
   });
 
   return {
-    executeStrk20RegistrationProposalAsync: mutation.mutateAsync,
+    executeMultisigStrk20ProposalAsync: mutation.mutateAsync,
     ...mutation,
   };
 }

@@ -14,7 +14,7 @@ import {
   useGetMultisigViewingPublicKey,
 } from "@/api/multisig";
 import {
-  useExecuteStrk20RegistrationProposal,
+  useExecuteMultisigStrk20Proposal,
   useGetProposal,
   useSaveProposalSignature,
 } from "@/api/proposal";
@@ -55,8 +55,8 @@ export function MultisigProposalDialog({
     proposal?.multisigAddress,
   );
   const { saveProposalSignatureAsync, isPending } = useSaveProposalSignature();
-  const { executeStrk20RegistrationProposalAsync, isPending: isExecuting } =
-    useExecuteStrk20RegistrationProposal();
+  const { executeMultisigStrk20ProposalAsync, isPending: isExecuting } =
+    useExecuteMultisigStrk20Proposal();
   const [error, setError] = useState<Error | null>(null);
 
   let multisigViewingKey: bigint | null = null;
@@ -119,7 +119,7 @@ export function MultisigProposalDialog({
 
     setError(null);
     try {
-      await executeStrk20RegistrationProposalAsync({
+      await executeMultisigStrk20ProposalAsync({
         proposal,
         viewingKey: multisigViewingKey,
       });

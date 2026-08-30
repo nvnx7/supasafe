@@ -168,7 +168,8 @@ export class LocalStorageMultisigProposalProvider
       .filter(
         (proposal) =>
           proposal.multisigAddress === multisig &&
-          proposal.owners.includes(normalizedOwner),
+          proposal.owners.includes(normalizedOwner) &&
+          proposal.status !== "executed",
       )
       .map((proposal) => ({
         hash: proposal.hash,
