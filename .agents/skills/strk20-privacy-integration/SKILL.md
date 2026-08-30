@@ -115,7 +115,7 @@ Read `references/execute.md` before the first phase — it holds the full loop, 
 
 **Execution guardrails (non-negotiable):**
 
-- **App code only — never Cairo.** If a phase calls for an anonymizer contract, deliver design guidance and point at the public reference packages (`packages/ekubo_swap_anonymizer`, `packages/vesu_lending_anonymizer`); the team writes, reviews, audits, deploys, and maintains its own contract.
+- **App code only.** If a phase calls for an anonymizer contract, deliver design guidance and point at the public reference packages (`packages/ekubo_swap_anonymizer`, `packages/vesu_lending_anonymizer`); the team writes, reviews, audits, deploys, and maintains its own contract.
 - **No key material.** Never write viewing keys, private keys, or other secrets into files — env-var placeholders only. If a step seems to need a user's viewing key, the route is wrong: go back to Step 3.
 - **Testnet by default.** Mainnet-affecting changes need the developer's explicit confirmation at that moment.
 - **Graceful degradation is part of Phase 1**, not optional — detect wallets without privacy support and degrade per `references/wallet-api-route.md`.
