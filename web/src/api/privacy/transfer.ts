@@ -17,6 +17,7 @@ export type CreateMultisigTransferProposalParams = TransferParams & {
   multisig: MultisigDetail;
   owner: string;
   viewingKey: bigint;
+  provingBlockId: number;
   signApproval: (callSetHash: bigint) => Promise<Signature>;
   tokenSymbol: string;
 };
@@ -42,6 +43,7 @@ export async function createMultisigTransferProposal({
   multisig,
   owner,
   viewingKey,
+  provingBlockId,
   signApproval,
   token,
   tokenSymbol,
@@ -52,6 +54,7 @@ export async function createMultisigTransferProposal({
     multisig,
     owner,
     viewingKey,
+    provingBlockId,
     signApproval,
     display: {
       kind: "strk20-transfer",
@@ -67,6 +70,7 @@ export async function createMultisigTransferProposal({
           autoDiscover: { notes: "refresh", channels: "refresh" },
           autoSelectNotes: "naive",
           autoSetup: true,
+          provingBlockId,
         })
         .with(token, (operations) => operations.transfer({ recipient, amount }))
         .surplusTo(multisig.address)
@@ -78,8 +82,11 @@ export function useCreateMultisigTransferProposal() {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: createMultisigTransferProposal,
-    onSuccess: async () => {
+    onSuccess: async (proposal) => {
       await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["multisigProposal", proposal.hash],
+      });
     },
   });
 

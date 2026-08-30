@@ -21,7 +21,6 @@ export function useExecuteMultisigStrk20Proposal() {
       viewingKey,
     }: ExecuteMultisigStrk20ProposalParams) => {
       const transactionHash = await executeMultisigStrk20Proposal({
-        provider,
         proposal,
         viewingKey,
       });

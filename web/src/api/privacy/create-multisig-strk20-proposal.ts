@@ -15,6 +15,7 @@ type CreateMultisigStrk20ProposalParams = {
   multisig: MultisigDetail;
   owner: string;
   viewingKey: bigint;
+  provingBlockId?: number;
   signApproval: (callSetHash: bigint) => Promise<Signature>;
   display: MultisigProposalDisplay;
   buildInvocation: (
@@ -26,6 +27,7 @@ export async function createMultisigStrk20Proposal({
   multisig,
   owner,
   viewingKey,
+  provingBlockId,
   signApproval,
   display,
   buildInvocation,
@@ -69,6 +71,7 @@ export async function createMultisigStrk20Proposal({
       signedAt: Date.now(),
     },
   ];
+  proposal.provingBlockId = provingBlockId;
   proposal.proofInvocation = invocation.invocation;
   proposal.status = multisig.threshold === 1 ? "ready" : "pending";
   await multisigProposalProvider.saveProposal(proposal);

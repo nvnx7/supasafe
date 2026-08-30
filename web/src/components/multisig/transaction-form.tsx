@@ -3,6 +3,7 @@
 import {
   type UseSignTypedDataArgs,
   useAccount,
+  useProvider,
   useSignTypedData,
 } from "@starknetfoundation/starknet-start-react";
 import { derivePublicKey } from "@starkware-libs/starknet-privacy-sdk/utils";
@@ -82,6 +83,7 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
   const { needsRecipient, cta, hint, recipientLabel } = KINDS[kind];
   const { multisigAddress: address } = useParams<{ multisigAddress: string }>();
   const { address: owner } = useAccount();
+  const { provider } = useProvider();
   const { signTypedDataAsync } = useSignTypedData({});
   const { data: multisig } = useGetMultisig(address);
   const { privateKey: supasafeViewKey, isReady: isSupasafeViewKeyReady } =
@@ -164,10 +166,12 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
     const selectedToken = TOKENS.find((entry) => entry.address === token);
     if (!selectedToken) return;
 
+    const provingBlockId = Math.max(0, (await provider.getBlockNumber()) - 10);
     const proposalParams = {
       multisig,
       owner,
       viewingKey: multisigViewingKey,
+      provingBlockId,
       token,
       tokenSymbol: selectedToken.symbol,
       amount: parseTokenAmount(amount, selectedToken.decimals),

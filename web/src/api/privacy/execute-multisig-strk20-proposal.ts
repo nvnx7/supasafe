@@ -1,18 +1,16 @@
 import { createEmptyRegistry } from "@starkware-libs/starknet-privacy-sdk";
-import type { ProviderInterface, SignerInterface } from "starknet";
+import type { SignerInterface } from "starknet";
 import type { MultisigProposal } from "@/lib/multisig-proposal-provider";
 import { packSignatureBundle } from "@/lib/signing";
 import { createMultisigPrivateTransfers } from "./multisig-private-transfers";
 import { submitStrk20Relay } from "./relay";
 
 type ExecuteMultisigStrk20ProposalParams = {
-  provider: Pick<ProviderInterface, "getBlockNumber">;
   proposal: MultisigProposal;
   viewingKey: bigint;
 };
 
 export async function executeMultisigStrk20Proposal({
-  provider,
   proposal,
   viewingKey,
 }: ExecuteMultisigStrk20ProposalParams) {
@@ -22,6 +20,11 @@ export async function executeMultisigStrk20Proposal({
   if (!proposal.proofInvocation) {
     throw new Error(
       "This proposal was created before Supasafe started storing its SDK invocation. Recreate it.",
+    );
+  }
+  if (proposal.provingBlockId === undefined) {
+    throw new Error(
+      "This proposal was created before Supasafe pinned its proving block. Recreate it before executing.",
     );
   }
 
@@ -41,14 +44,13 @@ export async function executeMultisigStrk20Proposal({
     viewingKey,
     signer: createStoredInvocationSigner(),
   });
-  const provingBlockId = Math.max(0, (await provider.getBlockNumber()) - 10);
   const { callAndProof } = await transfers.executeWithInvocation(
     {
       invocation: { ...proposal.proofInvocation, signature },
       registry: createEmptyRegistry(),
       warnings: [],
     },
-    provingBlockId,
+    proposal.provingBlockId,
   );
 
   return submitStrk20Relay({ callAndProof });

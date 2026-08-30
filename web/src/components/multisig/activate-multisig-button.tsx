@@ -3,6 +3,7 @@
 import {
   type UseSignTypedDataArgs,
   useAccount,
+  useProvider,
   useSignTypedData,
 } from "@starknetfoundation/starknet-start-react";
 import { derivePublicKey } from "@starkware-libs/starknet-privacy-sdk/utils";
@@ -28,6 +29,7 @@ export function ActivateMultisigButton({
   multisig: MultisigDetail;
 }) {
   const { address } = useAccount();
+  const { provider } = useProvider();
   const { signTypedDataAsync } = useSignTypedData({});
   const {
     privateKey: supasafeViewKey,
@@ -81,10 +83,15 @@ export function ActivateMultisigButton({
 
     setError(null);
     try {
+      const provingBlockId = Math.max(
+        0,
+        (await provider.getBlockNumber()) - 10,
+      );
       await createStrk20RegistrationProposalAsync({
         multisig,
         owner: address,
         viewingKey: multisigViewingKey,
+        provingBlockId,
         signApproval: async (callSetHash) =>
           (await signTypedDataAsync(
             buildApprovalTypedData(

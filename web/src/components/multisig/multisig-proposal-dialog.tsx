@@ -28,10 +28,31 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { TOKENS } from "@/config/constants";
 import { networkConfig } from "@/config/network";
 import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
+import { truncateAddress } from "@/lib/multisig";
 import { buildApprovalTypedData } from "@/lib/signing";
 import { decryptViewKey } from "@/utils/encryption";
+
+function formatAmount(amount: string, decimals: number) {
+  const value = BigInt(amount);
+  const base = 10n ** BigInt(decimals);
+  const whole = value / base;
+  const fraction = (value % base).toString().padStart(decimals, "0");
+  const trimmedFraction = fraction.replace(/0+$/, "");
+  return trimmedFraction
+    ? `${whole}.${trimmedFraction.slice(0, 6)}`
+    : whole.toString();
+}
+
+function formatCreatedAt(timestamp: number) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(timestamp);
+}
 
 export function MultisigProposalDialog({
   hash,
@@ -84,6 +105,12 @@ export function MultisigProposalDialog({
         (signature) => BigInt(signature.owner) === BigInt(address),
       ),
   );
+  const proposalTokenAddress = proposal?.display.token?.address;
+  const proposalToken = proposalTokenAddress
+    ? TOKENS.find(
+        (token) => BigInt(token.address) === BigInt(proposalTokenAddress),
+      )
+    : undefined;
 
   async function signProposal() {
     if (!address || !proposal) return;
@@ -143,18 +170,47 @@ export function MultisigProposalDialog({
           </DialogDescription>
         </DialogHeader>
         {proposal ? (
-          <div className="flex flex-col gap-2 text-sm">
+          <dl className="flex flex-col gap-2 text-sm">
+            {proposal.display.amount && proposalToken ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Amount</dt>
+                <dd className="font-mono">
+                  {formatAmount(
+                    proposal.display.amount,
+                    proposalToken.decimals,
+                  )}{" "}
+                  {proposalToken.symbol}
+                </dd>
+              </div>
+            ) : null}
+            {proposal.display.recipient ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Recipient</dt>
+                <dd
+                  className="max-w-56 truncate font-mono"
+                  title={proposal.display.recipient}
+                >
+                  {truncateAddress(proposal.display.recipient, 10)}
+                </dd>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Approvals</span>
-              <span>
+              <dt className="text-muted-foreground">Approvals</dt>
+              <dd>
                 {proposal.signatures.length} / {proposal.threshold}
-              </span>
+              </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Status</span>
-              <span className="capitalize">{proposal.status}</span>
+              <dt className="text-muted-foreground">Status</dt>
+              <dd className="capitalize">{proposal.status}</dd>
             </div>
-          </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Created</dt>
+              <dd title={new Date(proposal.createdAt).toISOString()}>
+                {formatCreatedAt(proposal.createdAt)} UTC
+              </dd>
+            </div>
+          </dl>
         ) : null}
         {error ? (
           <p className="text-sm text-destructive">{error.message}</p>

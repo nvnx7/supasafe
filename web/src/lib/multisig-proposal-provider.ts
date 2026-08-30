@@ -30,6 +30,8 @@ export type MultisigProposal = {
   threshold: number;
   calls: MultisigProposalCall[];
   additionalData: string[];
+  /// The finalized pool state used for both discovery and proof generation.
+  provingBlockId?: number;
   /// Registration includes SDK-generated randomness, so retain the exact invocation owners approved.
   proofInvocation?: ProofInvocation;
   display: MultisigProposalDisplay;
@@ -80,6 +82,12 @@ function normalizeProposal(proposal: MultisigProposal): MultisigProposal {
   if (!Number.isInteger(proposal.threshold) || proposal.threshold < 1) {
     throw new Error("Proposal threshold must be a positive integer.");
   }
+  if (
+    proposal.provingBlockId !== undefined &&
+    (!Number.isInteger(proposal.provingBlockId) || proposal.provingBlockId < 0)
+  ) {
+    throw new Error("Proposal proving block must be a non-negative integer.");
+  }
 
   const owners = proposal.owners.map(normalizeAddress);
   if (proposal.threshold > owners.length) {
@@ -96,6 +104,9 @@ function normalizeProposal(proposal: MultisigProposal): MultisigProposal {
       calldata: [...call.calldata],
     })),
     additionalData: [...proposal.additionalData],
+    ...(proposal.provingBlockId !== undefined
+      ? { provingBlockId: proposal.provingBlockId }
+      : {}),
     ...(proposal.proofInvocation
       ? {
           proofInvocation: {

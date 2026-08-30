@@ -17,6 +17,7 @@ export type CreateMultisigWithdrawProposalParams = WithdrawParams & {
   multisig: MultisigDetail;
   owner: string;
   viewingKey: bigint;
+  provingBlockId: number;
   signApproval: (callSetHash: bigint) => Promise<Signature>;
   tokenSymbol: string;
 };
@@ -42,6 +43,7 @@ export async function createMultisigWithdrawProposal({
   multisig,
   owner,
   viewingKey,
+  provingBlockId,
   signApproval,
   token,
   tokenSymbol,
@@ -52,6 +54,7 @@ export async function createMultisigWithdrawProposal({
     multisig,
     owner,
     viewingKey,
+    provingBlockId,
     signApproval,
     display: {
       kind: "strk20-withdraw",
@@ -65,7 +68,9 @@ export async function createMultisigWithdrawProposal({
       transfers
         .build({
           autoDiscover: { notes: "refresh", channels: "refresh" },
+          autoSetup: true,
           autoSelectNotes: "naive",
+          provingBlockId,
         })
         .with(token, (operations) => operations.withdraw({ recipient, amount }))
         .surplusTo(multisig.address)
@@ -77,8 +82,11 @@ export function useCreateMultisigWithdrawProposal() {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: createMultisigWithdrawProposal,
-    onSuccess: async () => {
+    onSuccess: async (proposal) => {
       await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["multisigProposal", proposal.hash],
+      });
     },
   });
 
