@@ -4,6 +4,7 @@ import { sepolia } from "@starknetfoundation/starknet-start-chains";
 import { jsonRpcProvider } from "@starknetfoundation/starknet-start-providers";
 import { StarknetConfig } from "@starknetfoundation/starknet-start-react";
 import type { ReactNode } from "react";
+import { Toaster } from "@/components/ui/toast";
 import { isDevnet } from "@/config/env";
 import { devnetChain, networkConfig } from "@/config/network";
 
@@ -16,6 +17,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <StarknetConfig chains={chains} provider={provider}>
       {children}
+      <Toaster />
     </StarknetConfig>
   );
 }

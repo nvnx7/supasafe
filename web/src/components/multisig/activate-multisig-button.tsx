@@ -17,6 +17,7 @@ import {
 import { useCreateStrk20RegistrationProposal } from "@/api/proposal";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { toast } from "@/components/ui/toast";
 import { networkConfig } from "@/config/network";
 import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
 import type { MultisigDetail } from "@/lib/multisig";
@@ -101,12 +102,22 @@ export function ActivateMultisigButton({
             ) as unknown as UseSignTypedDataArgs,
           )) as Signature,
       });
+      toast.add({
+        type: "success",
+        title: "STRK20 activation proposed",
+        description: "The proposal is ready for owner approvals.",
+      });
     } catch (reason) {
-      setError(
+      const nextError =
         reason instanceof Error
           ? reason
-          : new Error("Could not create activation proposal."),
-      );
+          : new Error("Could not create activation proposal.");
+      setError(nextError);
+      toast.add({
+        type: "error",
+        title: "Could not propose STRK20 activation",
+        description: nextError.message,
+      });
     }
   }
 

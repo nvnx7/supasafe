@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { toast } from "@/components/ui/toast";
 import { TOKENS } from "@/config/constants";
 import { networkConfig } from "@/config/network";
 import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
@@ -132,12 +133,22 @@ export function MultisigProposalDialog({
           signedAt: Date.now(),
         },
       });
+      toast.add({
+        type: "success",
+        title: "Proposal approved",
+        description: "Your owner signature was recorded.",
+      });
     } catch (reason) {
-      setError(
+      const nextError =
         reason instanceof Error
           ? reason
-          : new Error("Could not sign proposal."),
-      );
+          : new Error("Could not sign proposal.");
+      setError(nextError);
+      toast.add({
+        type: "error",
+        title: "Could not approve proposal",
+        description: nextError.message,
+      });
     }
   }
 
@@ -146,17 +157,27 @@ export function MultisigProposalDialog({
 
     setError(null);
     try {
-      await executeMultisigStrk20ProposalAsync({
+      const transaction = await executeMultisigStrk20ProposalAsync({
         proposal,
         viewingKey: multisigViewingKey,
       });
+      toast.add({
+        type: "success",
+        title: "Proposal executed",
+        description: `Transaction ${truncateAddress(transaction.transaction_hash, 10)} confirmed.`,
+      });
       onOpenChange(false);
     } catch (reason) {
-      setError(
+      const nextError =
         reason instanceof Error
           ? reason
-          : new Error("Could not execute proposal."),
-      );
+          : new Error("Could not execute proposal.");
+      setError(nextError);
+      toast.add({
+        type: "error",
+        title: "Proposal execution failed",
+        description: nextError.message,
+      });
     }
   }
 

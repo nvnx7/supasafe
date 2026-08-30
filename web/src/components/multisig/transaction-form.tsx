@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { toast } from "@/components/ui/toast";
 import { TOKENS } from "@/config/constants";
 import { networkConfig } from "@/config/network";
 import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
@@ -149,47 +150,73 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
     setSubmitted(true);
     if (!valid) return;
 
-    if (kind === "deposit") {
+    try {
+      if (kind === "deposit") {
+        const selectedToken = TOKENS.find((entry) => entry.address === token);
+        if (!selectedToken) return;
+
+        await depositToMultisigAsync({
+          token,
+          amount: parseTokenAmount(amount, selectedToken.decimals),
+          multisigAddress: address,
+        });
+        toast.add({
+          type: "success",
+          title: "Deposit submitted",
+          description: "The wallet is sending funds to this multisig.",
+        });
+        return;
+      }
+
+      if (!multisig || !owner || !multisigViewingKey || !needsRecipient) {
+        return;
+      }
+
       const selectedToken = TOKENS.find((entry) => entry.address === token);
       if (!selectedToken) return;
 
-      await depositToMultisigAsync({
+      const provingBlockId = Math.max(
+        0,
+        (await provider.getBlockNumber()) - 10,
+      );
+      const proposalParams = {
+        multisig,
+        owner,
+        viewingKey: multisigViewingKey,
+        provingBlockId,
         token,
+        tokenSymbol: selectedToken.symbol,
         amount: parseTokenAmount(amount, selectedToken.decimals),
-        multisigAddress: address,
+        recipient: recipient.trim(),
+        signApproval: async (callSetHash: bigint) =>
+          (await signTypedDataAsync(
+            buildApprovalTypedData(
+              multisig.address,
+              callSetHash,
+              networkConfig.chainId,
+            ) as unknown as UseSignTypedDataArgs,
+          )) as Signature,
+      };
+
+      if (kind === "withdraw") {
+        await createMultisigWithdrawProposalAsync(proposalParams);
+      } else {
+        await createMultisigTransferProposalAsync(proposalParams);
+      }
+      toast.add({
+        type: "success",
+        title:
+          kind === "withdraw" ? "Withdrawal proposed" : "Transfer proposed",
+        description: "The proposal is ready for owner approvals.",
       });
-      return;
-    }
-
-    if (!multisig || !owner || !multisigViewingKey || !needsRecipient) return;
-
-    const selectedToken = TOKENS.find((entry) => entry.address === token);
-    if (!selectedToken) return;
-
-    const provingBlockId = Math.max(0, (await provider.getBlockNumber()) - 10);
-    const proposalParams = {
-      multisig,
-      owner,
-      viewingKey: multisigViewingKey,
-      provingBlockId,
-      token,
-      tokenSymbol: selectedToken.symbol,
-      amount: parseTokenAmount(amount, selectedToken.decimals),
-      recipient: recipient.trim(),
-      signApproval: async (callSetHash: bigint) =>
-        (await signTypedDataAsync(
-          buildApprovalTypedData(
-            multisig.address,
-            callSetHash,
-            networkConfig.chainId,
-          ) as unknown as UseSignTypedDataArgs,
-        )) as Signature,
-    };
-
-    if (kind === "withdraw") {
-      await createMultisigWithdrawProposalAsync(proposalParams);
-    } else {
-      await createMultisigTransferProposalAsync(proposalParams);
+    } catch (reason) {
+      toast.add({
+        type: "error",
+        title:
+          kind === "deposit" ? "Deposit failed" : "Could not create proposal",
+        description:
+          reason instanceof Error ? reason.message : "Please try again.",
+      });
     }
   }
 
