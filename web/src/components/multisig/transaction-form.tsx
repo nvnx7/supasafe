@@ -8,7 +8,7 @@ import {
 } from "@starknetfoundation/starknet-start-react";
 import { derivePublicKey } from "@starkware-libs/starknet-privacy-sdk/utils";
 import { useParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Signature } from "starknet";
 import {
   useGetEncryptedViewingKey,
@@ -47,6 +47,7 @@ import {
   isValidAmount,
   parseTokenAmount,
   type TransactionKind,
+  truncateAddress,
 } from "@/lib/multisig";
 import { buildApprovalTypedData } from "@/lib/signing";
 import { decryptViewKey } from "@/utils/encryption";
@@ -103,14 +104,17 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
   } = useCreateMultisigTransferProposal();
   const {
     depositToMultisigAsync,
-    isPending: isDepositing,
     error: depositError,
+    reset: resetDeposit,
   } = useDepositToMultisig();
 
   const [token, setToken] = useState(TOKENS[0]?.address ?? "");
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const depositRequest = useRef<Promise<{ transaction_hash: string }> | null>(
+    null,
+  );
 
   const multisigViewingKey = useMemo(() => {
     if (
@@ -150,24 +154,64 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
     setSubmitted(true);
     if (!valid) return;
 
-    try {
-      if (kind === "deposit") {
-        const selectedToken = TOKENS.find((entry) => entry.address === token);
-        if (!selectedToken) return;
-
-        await depositToMultisigAsync({
-          token,
-          amount: parseTokenAmount(amount, selectedToken.decimals),
-          multisigAddress: address,
-        });
+    if (kind === "deposit") {
+      const selectedToken = TOKENS.find((entry) => entry.address === token);
+      if (!selectedToken) return;
+      if (depositRequest.current) {
         toast.add({
-          type: "success",
-          title: "Deposit submitted",
-          description: "The wallet is sending funds to this multisig.",
+          type: "info",
+          title: "Deposit request in progress",
+          description: "Check your wallet before starting another deposit.",
         });
         return;
       }
 
+      try {
+        const request = depositToMultisigAsync({
+          token,
+          amount: parseTokenAmount(amount, selectedToken.decimals),
+          multisigAddress: address,
+        });
+        depositRequest.current = request;
+        resetDeposit();
+        toast.add({
+          type: "info",
+          title: "Confirm deposit in your wallet",
+          description: "The request is ready for wallet confirmation.",
+        });
+
+        void request
+          .then((transaction) => {
+            toast.add({
+              type: "success",
+              title: "Deposit submitted",
+              description: `Transaction ${truncateAddress(transaction.transaction_hash, 10)} submitted.`,
+            });
+          })
+          .catch((reason) => {
+            toast.add({
+              type: "error",
+              title: "Deposit failed",
+              description:
+                reason instanceof Error ? reason.message : "Please try again.",
+            });
+          })
+          .finally(() => {
+            depositRequest.current = null;
+            resetDeposit();
+          });
+      } catch (reason) {
+        toast.add({
+          type: "error",
+          title: "Deposit failed",
+          description:
+            reason instanceof Error ? reason.message : "Please try again.",
+        });
+      }
+      return;
+    }
+
+    try {
       if (!multisig || !owner || !multisigViewingKey || !needsRecipient) {
         return;
       }
@@ -212,8 +256,7 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
     } catch (reason) {
       toast.add({
         type: "error",
-        title:
-          kind === "deposit" ? "Deposit failed" : "Could not create proposal",
+        title: "Could not create proposal",
         description:
           reason instanceof Error ? reason.message : "Please try again.",
       });
@@ -307,18 +350,11 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
           type="submit"
           disabled={
             isCreatingProposal ||
-            isDepositing ||
             (kind !== "deposit" && (!multisig || !owner || !multisigViewingKey))
           }
         >
-          {isCreatingProposal || isDepositing ? (
-            <Spinner data-icon="inline-start" />
-          ) : null}
-          {isDepositing
-            ? "Depositing…"
-            : isCreatingProposal
-              ? "Preparing…"
-              : cta}
+          {isCreatingProposal ? <Spinner data-icon="inline-start" /> : null}
+          {isCreatingProposal ? "Preparing…" : cta}
         </Button>
       </FieldGroup>
     </form>
