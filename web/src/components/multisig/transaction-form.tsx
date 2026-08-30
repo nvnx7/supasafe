@@ -81,6 +81,12 @@ const TOKEN_ITEMS = TOKENS.map((token) => ({
   label: token.symbol,
 }));
 
+function isWalletTimeout(reason: unknown) {
+  return (
+    reason instanceof Error && /timed?\s*out|timeout/i.test(reason.message)
+  );
+}
+
 export function TransactionForm({ kind }: { kind: TransactionKind }) {
   const { needsRecipient, cta, hint, recipientLabel } = KINDS[kind];
   const { multisigAddress: address } = useParams<{ multisigAddress: string }>();
@@ -102,11 +108,8 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
     isPending: isCreatingTransferProposal,
     error: transferError,
   } = useCreateMultisigTransferProposal();
-  const {
-    depositToMultisigAsync,
-    error: depositError,
-    reset: resetDeposit,
-  } = useDepositToMultisig();
+  const { depositToMultisigAsync, reset: resetDeposit } =
+    useDepositToMultisig();
 
   const [token, setToken] = useState(TOKENS[0]?.address ?? "");
   const [amount, setAmount] = useState("");
@@ -189,6 +192,15 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
             });
           })
           .catch((reason) => {
+            if (isWalletTimeout(reason)) {
+              toast.add({
+                type: "warning",
+                title: "Wallet confirmation timed out",
+                description:
+                  "Ready did not return a final response. Refresh the private balance before retrying.",
+              });
+              return;
+            }
             toast.add({
               type: "error",
               title: "Deposit failed",
@@ -327,16 +339,13 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
 
         <FieldDescription>{hint}</FieldDescription>
 
-        {withdrawError || transferError || depositError ? (
+        {withdrawError || transferError ? (
           <FieldError>
-            {depositError instanceof Error
-              ? depositError.message
-              : (depositError ??
-                (withdrawError instanceof Error
-                  ? withdrawError.message
-                  : transferError instanceof Error
-                    ? transferError.message
-                    : "Could not create proposal."))}
+            {withdrawError instanceof Error
+              ? withdrawError.message
+              : transferError instanceof Error
+                ? transferError.message
+                : "Could not create proposal."}
           </FieldError>
         ) : null}
 
