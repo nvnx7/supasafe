@@ -1,7 +1,7 @@
 import { createPrivateTransfers } from "@starkware-libs/starknet-privacy-sdk";
-import type { constants, SignerInterface } from "starknet";
-import { indexerUrlSepolia, proverUrlSepolia } from "@/config/env";
+import type { SignerInterface } from "starknet";
 import { networkConfig } from "@/config/network";
+import { createProofProvider } from "./proof-provider";
 
 type CreateMultisigPrivateTransfersParams = {
   multisigAddress: string;
@@ -39,11 +39,8 @@ export function createMultisigPrivateTransfers({
   return createPrivateTransfers({
     account: { address: multisigAddress, signer: signer ?? readOnlySigner },
     viewingKeyProvider: { getViewingKey: async () => viewingKey },
-    provingProvider: {
-      url: proverUrlSepolia,
-      chainId: networkConfig.chainId as constants.StarknetChainId,
-    },
-    discoveryProvider: { url: indexerUrlSepolia },
+    provingProvider: createProofProvider(networkConfig),
+    discoveryProvider: { url: networkConfig.indexerUrl },
     poolContractAddress: networkConfig.privacyPoolAddress,
   });
 }
