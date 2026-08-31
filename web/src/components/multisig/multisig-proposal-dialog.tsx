@@ -112,6 +112,12 @@ export function MultisigProposalDialog({
         (token) => BigInt(token.address) === BigInt(proposalTokenAddress),
       )
     : undefined;
+  const proposalOutputTokenAddress = proposal?.display.outputToken?.address;
+  const proposalOutputToken = proposalOutputTokenAddress
+    ? TOKENS.find(
+        (token) => BigInt(token.address) === BigInt(proposalOutputTokenAddress),
+      )
+    : undefined;
 
   async function signProposal() {
     if (!address || !proposal) return;
@@ -212,6 +218,18 @@ export function MultisigProposalDialog({
                   title={proposal.display.recipient}
                 >
                   {truncateAddress(proposal.display.recipient, 10)}
+                </dd>
+              </div>
+            ) : null}
+            {proposal.display.minimumReceived && proposalOutputToken ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Minimum received</dt>
+                <dd className="font-mono">
+                  {formatAmount(
+                    proposal.display.minimumReceived,
+                    proposalOutputToken.decimals,
+                  )}{" "}
+                  {proposalOutputToken.symbol}
                 </dd>
               </div>
             ) : null}

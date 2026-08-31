@@ -4,6 +4,8 @@ export * from "./deposit";
 export * from "./execute-multisig-strk20-proposal";
 export * from "./getPublicViewKey";
 export * from "./multisig-private-transfers";
+export * from "./quote-swap";
 export * from "./relay";
+export * from "./swap";
 export * from "./transfer";
 export * from "./withdraw";

@@ -9,9 +9,20 @@ export const DEVNET_CHAIN_ID = "0x4445564e4554"; // "DEVNET" in hex
 export type NetworkConfig = {
   rpcUrl: string;
   chainId: string;
+  multisigClassHash: string;
   privacyPoolAddress: string;
   supasafeFactoryAddress: string;
-  multisigClassHash: string;
+  ekuboExecutorAddress: string;
+  ekuboCoreAddress: string;
+  ekuboRouterAddress: string;
+  ekuboEthStrkPool?: {
+    token0: string;
+    token1: string;
+    fee: string;
+    tickSpacing: string;
+    extension: string;
+    skipAhead: string;
+  };
 };
 
 export const devnetChain: Chain = {
@@ -26,11 +37,14 @@ export const devnetChain: Chain = {
 const devnetConfig: NetworkConfig = {
   rpcUrl: rpcUrlDevnet,
   chainId: DEVNET_CHAIN_ID,
+  multisigClassHash:
+    "0x5fd9ebaf5712f4f36f8d925e3a8dcac0aafda991cc7f752d9e21f3841faa494",
   privacyPoolAddress: "",
   supasafeFactoryAddress:
     "0x2ee7434e31a72cb405693dd712d6b564ebb9792e3af4a84dda17076d6d3a230",
-  multisigClassHash:
-    "0x5fd9ebaf5712f4f36f8d925e3a8dcac0aafda991cc7f752d9e21f3841faa494",
+  ekuboExecutorAddress: "",
+  ekuboCoreAddress: " ",
+  ekuboRouterAddress: "",
 };
 
 const sepoliaConfig: NetworkConfig = {
@@ -42,6 +56,22 @@ const sepoliaConfig: NetworkConfig = {
     "0x5fd9ebaf5712f4f36f8d925e3a8dcac0aafda991cc7f752d9e21f3841faa494",
   supasafeFactoryAddress:
     "0x25a2f45ee1b147828cb0d259b3dd7dd3b6a0cb3c8c8b6fcfbdd23230305f26d",
+  ekuboExecutorAddress:
+    "0x028edb1e1b658dce072a9aea47b1e75cd82f68a8f15409233ec2e3abb7dbc95b",
+  ekuboCoreAddress:
+    "0x0444a09d96389aa7148f1aada508e30b71299ffe650d9c97fdaae38cb9a23384",
+  ekuboRouterAddress:
+    "0x0045f933adf0607292468ad1c1dedaa74d5ad166392590e72676a34d01d7b763",
+  ekuboEthStrkPool: {
+    token0:
+      "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+    token1:
+      "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+    fee: "1020847100762815411640772995208708096",
+    tickSpacing: "5982",
+    extension: "0x0",
+    skipAhead: "1",
+  },
 };
 
 export const networkConfigs: Record<NetworkType, NetworkConfig> = {

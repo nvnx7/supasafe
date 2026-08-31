@@ -16,6 +16,7 @@ const TABS: { value: TransactionKind; label: string }[] = [
   { value: "deposit", label: "Deposit" },
   { value: "withdraw", label: "Withdraw" },
   { value: "transfer", label: "Transfer" },
+  { value: "swap", label: "Swap" },
 ];
 
 export function TransactionPanel() {

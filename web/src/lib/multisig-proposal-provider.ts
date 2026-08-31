@@ -20,6 +20,8 @@ export type MultisigProposalDisplay = {
   description: string;
   token?: { symbol: string; address: string };
   amount?: string;
+  outputToken?: { symbol: string; address: string };
+  minimumReceived?: string;
   recipient?: string;
 };
 
@@ -123,6 +125,14 @@ function normalizeProposal(proposal: MultisigProposal): MultisigProposal {
             token: {
               ...proposal.display.token,
               address: normalizeAddress(proposal.display.token.address),
+            },
+          }
+        : {}),
+      ...(proposal.display.outputToken
+        ? {
+            outputToken: {
+              ...proposal.display.outputToken,
+              address: normalizeAddress(proposal.display.outputToken.address),
             },
           }
         : {}),

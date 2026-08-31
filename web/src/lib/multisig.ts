@@ -41,7 +41,7 @@ export interface MultisigDraftErrors {
   threshold?: string;
 }
 
-export type TransactionKind = "deposit" | "withdraw" | "transfer";
+export type TransactionKind = "deposit" | "withdraw" | "transfer" | "swap";
 
 // A felt252 needs 63 hex digits, but addresses are conventionally zero-padded
 // to 64, so the range has to be checked by value rather than by digit count.
@@ -70,6 +70,22 @@ export function parseTokenAmount(value: string, decimals: number): bigint {
   const base = 10n ** BigInt(decimals);
   const fractionValue = fraction.padEnd(decimals, "0");
   return BigInt(whole) * base + BigInt(fractionValue || "0");
+}
+
+export function formatTokenAmount(
+  value: bigint,
+  decimals: number,
+  maximumFractionDigits = 6,
+): string {
+  const base = 10n ** BigInt(decimals);
+  const whole = value / base;
+  const fraction = (value % base)
+    .toString()
+    .padStart(decimals, "0")
+    .slice(0, maximumFractionDigits)
+    .replace(/0+$/, "");
+
+  return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
 export function isValidAddress(value: string): boolean {
