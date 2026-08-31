@@ -8,6 +8,7 @@ import {
 } from "@starknetfoundation/starknet-start-react";
 import { derivePublicKey } from "@starkware-libs/starknet-privacy-sdk/utils";
 import { ArrowDownIcon } from "lucide-react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useDeferredValue, useMemo, useRef, useState } from "react";
 import type { Signature } from "starknet";
@@ -355,6 +356,16 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
       <FieldGroup>
         {isSwap ? (
           <div className="grid gap-3">
+            <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+              <span>Powered By</span>
+              <Image
+                src="/ekubo.svg"
+                alt="Ekubo"
+                width={90}
+                height={16}
+                className="h-4 w-auto dark:invert"
+              />
+            </div>
             <Field
               data-invalid={submitted && amountError ? true : undefined}
               className="grid gap-4 rounded-lg border border-border bg-muted/30 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
