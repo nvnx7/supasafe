@@ -69,7 +69,7 @@ export function useEkuboSwapQuote({
         signal,
       }),
     enabled: Boolean(
-      networkConfig.ekuboExecutorAddress &&
+      networkConfig.ekubo.executorAddress &&
         fromToken &&
         toToken &&
         amount &&

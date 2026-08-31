@@ -22,23 +22,19 @@ export type CreateMultisigSwapProposalParams = {
 };
 
 function getEkuboSwapConfig(fromToken: string, toToken: string) {
-  const { ekuboExecutorAddress, ekuboRouterAddress, ekuboEthStrkPool } =
-    networkConfig;
+  const { executorAddress, routerAddress, ethStrkPool } = networkConfig.ekubo;
 
-  if (!ekuboExecutorAddress || !ekuboRouterAddress || !ekuboEthStrkPool) {
+  if (!executorAddress || !routerAddress || !ethStrkPool) {
     throw new Error("Ekubo swap is not configured for this network.");
   }
 
-  const poolTokens = [
-    BigInt(ekuboEthStrkPool.token0),
-    BigInt(ekuboEthStrkPool.token1),
-  ];
+  const poolTokens = [BigInt(ethStrkPool.token0), BigInt(ethStrkPool.token1)];
   const swapTokens = [BigInt(fromToken), BigInt(toToken)];
   if (!poolTokens.every((poolToken) => swapTokens.includes(poolToken))) {
     throw new Error("This token pair is not supported by the Ekubo swap pool.");
   }
 
-  return { ekuboExecutorAddress, ekuboRouterAddress, ekuboEthStrkPool };
+  return { executorAddress, routerAddress, ethStrkPool };
 }
 
 export async function createMultisigSwapProposal({
@@ -57,8 +53,10 @@ export async function createMultisigSwapProposal({
   if (BigInt(fromToken) === BigInt(toToken)) {
     throw new Error("Choose two different tokens to swap.");
   }
-  const { ekuboExecutorAddress, ekuboRouterAddress, ekuboEthStrkPool } =
-    getEkuboSwapConfig(fromToken, toToken);
+  const { executorAddress, routerAddress, ethStrkPool } = getEkuboSwapConfig(
+    fromToken,
+    toToken,
+  );
 
   return createMultisigStrk20Proposal({
     multisig,
@@ -88,7 +86,7 @@ export async function createMultisigSwapProposal({
         .surplusTo(multisig.address)
         .with(fromToken, (operations) =>
           operations.withdraw({
-            recipient: ekuboExecutorAddress,
+            recipient: executorAddress,
             amount,
           }),
         )
@@ -103,20 +101,20 @@ export async function createMultisigSwapProposal({
           }
 
           return {
-            contractAddress: ekuboExecutorAddress,
+            contractAddress: executorAddress,
             calldata: [
-              ekuboRouterAddress,
+              routerAddress,
               fromToken,
               amount,
               0n,
-              ekuboEthStrkPool.token0,
-              ekuboEthStrkPool.token1,
-              ekuboEthStrkPool.fee,
-              ekuboEthStrkPool.tickSpacing,
-              ekuboEthStrkPool.extension,
+              ethStrkPool.token0,
+              ethStrkPool.token1,
+              ethStrkPool.fee,
+              ethStrkPool.tickSpacing,
+              ethStrkPool.extension,
               minimumReceived & ((1n << 128n) - 1n),
               minimumReceived >> 128n,
-              ekuboEthStrkPool.skipAhead,
+              ethStrkPool.skipAhead,
               outputNote.noteId,
             ],
           };
