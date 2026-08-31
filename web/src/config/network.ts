@@ -1,8 +1,8 @@
 import { type Chain, devnet } from "@starknetfoundation/starknet-start-chains";
 import { constants } from "starknet";
-import { network, rpcUrlDevnet, rpcUrlSepolia } from "./env";
+import { network, rpcUrlDevnet, rpcUrlMainnet, rpcUrlSepolia } from "./env";
 
-export type NetworkType = "devnet" | "sepolia";
+export type NetworkType = "devnet" | "sepolia" | "mainnet";
 
 export const DEVNET_CHAIN_ID = "0x4445564e4554"; // "DEVNET" in hex
 
@@ -74,9 +74,24 @@ const sepoliaConfig: NetworkConfig = {
   },
 };
 
+const mainnetConfig: NetworkConfig = {
+  rpcUrl: rpcUrlMainnet,
+  chainId: constants.StarknetChainId.SN_MAIN,
+  multisigClassHash: "",
+  privacyPoolAddress:
+    "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+  supasafeFactoryAddress: "",
+  ekuboExecutorAddress: "",
+  ekuboCoreAddress:
+    "0x00000005dd3D2F4429AF886cD1a3b08289DBcEa99A294197E9eB43b0e0325b4b",
+  ekuboRouterAddress:
+    "0x0199741822c2dc722f6f605204f35e56dbc23bceed54818168c4c49e4fb8737e",
+};
+
 export const networkConfigs: Record<NetworkType, NetworkConfig> = {
   devnet: devnetConfig,
   sepolia: sepoliaConfig,
+  mainnet: mainnetConfig,
 };
 
 export const networkConfig = networkConfigs[network];
