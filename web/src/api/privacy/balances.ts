@@ -3,7 +3,7 @@
 import { IndexerDiscoveryProvider } from "@starkware-libs/starknet-privacy-sdk";
 import { useQuery } from "@tanstack/react-query";
 import { TOKENS } from "@/config/constants";
-import { indexerUrl } from "@/config/env";
+import { indexerUrlSepolia } from "@/config/env";
 import { networkConfig } from "@/config/network";
 import { createMultisigPrivateTransfers } from "./multisig-private-transfers";
 
@@ -27,7 +27,7 @@ export async function getMultisigStrk20Balances({
   tokens = TOKENS.map((token) => token.address),
 }: GetMultisigStrk20BalancesParams): Promise<Strk20Balance[]> {
   const indexer = new IndexerDiscoveryProvider(
-    indexerUrl,
+    indexerUrlSepolia,
     networkConfig.privacyPoolAddress,
   );
   try {
