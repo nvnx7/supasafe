@@ -17,5 +17,7 @@ export const proverUrlSepolia = process.env
   .NEXT_PUBLIC_PROVER_URL_SEPOLIA as string;
 export const indexerUrlSepolia = process.env
   .NEXT_PUBLIC_INDEXER_URL_SEPOLIA as string;
+export const indexerUrlMainnet = process.env
+  .NEXT_PUBLIC_INDEXER_URL_MAINNET as string;
 export const apiKeyStarkscan = process.env
   .NEXT_PUBLIC_API_KEY_STARKSCAN as string;
