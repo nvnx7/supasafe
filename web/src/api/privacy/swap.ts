@@ -3,7 +3,7 @@
 import { Open } from "@starkware-libs/starknet-privacy-sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Signature } from "starknet";
-import { networkConfig } from "@/config/network";
+import { ekuboConfig } from "@/config/dapp";
 import type { MultisigDetail } from "@/lib/multisig";
 import { createMultisigStrk20Proposal } from "./create-multisig-strk20-proposal";
 
@@ -22,19 +22,22 @@ export type CreateMultisigSwapProposalParams = {
 };
 
 function getEkuboSwapConfig(fromToken: string, toToken: string) {
-  const { executorAddress, routerAddress, ethStrkPool } = networkConfig.ekubo;
+  const { executorAddress, routerAddress, pools } = ekuboConfig;
 
-  if (!executorAddress || !routerAddress || !ethStrkPool) {
+  if (!executorAddress || !routerAddress) {
     throw new Error("Ekubo swap is not configured for this network.");
   }
 
-  const poolTokens = [BigInt(ethStrkPool.token0), BigInt(ethStrkPool.token1)];
-  const swapTokens = [BigInt(fromToken), BigInt(toToken)];
-  if (!poolTokens.every((poolToken) => swapTokens.includes(poolToken))) {
+  const pool = pools.find(({ token0, token1 }) => {
+    const poolTokens = [BigInt(token0), BigInt(token1)];
+    const swapTokens = [BigInt(fromToken), BigInt(toToken)];
+    return poolTokens.every((poolToken) => swapTokens.includes(poolToken));
+  });
+  if (!pool) {
     throw new Error("This token pair is not supported by the Ekubo swap pool.");
   }
 
-  return { executorAddress, routerAddress, ethStrkPool };
+  return { executorAddress, routerAddress, pool };
 }
 
 export async function createMultisigSwapProposal({
@@ -53,7 +56,7 @@ export async function createMultisigSwapProposal({
   if (BigInt(fromToken) === BigInt(toToken)) {
     throw new Error("Choose two different tokens to swap.");
   }
-  const { executorAddress, routerAddress, ethStrkPool } = getEkuboSwapConfig(
+  const { executorAddress, routerAddress, pool } = getEkuboSwapConfig(
     fromToken,
     toToken,
   );
@@ -107,14 +110,14 @@ export async function createMultisigSwapProposal({
               fromToken,
               amount,
               0n,
-              ethStrkPool.token0,
-              ethStrkPool.token1,
-              ethStrkPool.fee,
-              ethStrkPool.tickSpacing,
-              ethStrkPool.extension,
+              pool.token0,
+              pool.token1,
+              pool.fee,
+              pool.tickSpacing,
+              pool.extension,
               minimumReceived & ((1n << 128n) - 1n),
               minimumReceived >> 128n,
-              ethStrkPool.skipAhead,
+              pool.skipAhead,
               outputNote.noteId,
             ],
           };

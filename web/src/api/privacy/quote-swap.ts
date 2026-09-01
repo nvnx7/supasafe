@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { ekuboConfig } from "@/config/dapp";
 import { networkConfig } from "@/config/network";
 
 const EKUBO_QUOTER_URL = "https://prod-api-quoter.ekubo.org";
@@ -69,7 +70,7 @@ export function useEkuboSwapQuote({
         signal,
       }),
     enabled: Boolean(
-      networkConfig.ekubo.executorAddress &&
+      ekuboConfig.executorAddress &&
         fromToken &&
         toToken &&
         amount &&
