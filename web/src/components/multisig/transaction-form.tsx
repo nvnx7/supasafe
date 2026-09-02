@@ -18,12 +18,14 @@ import {
   useGetMultisigViewingPublicKey,
 } from "@/api/multisig";
 import {
-  useCreateMultisigSwapProposal,
   useCreateMultisigTransferProposal,
   useCreateMultisigWithdrawProposal,
   useDepositToMultisig,
-  useEkuboSwapQuote,
 } from "@/api/privacy";
+import {
+  useCreateMultisigSwapProposal,
+  useEkuboSwapQuote,
+} from "@/api/privacy/ekubo";
 import { Button } from "@/components/ui/button";
 import {
   Field,

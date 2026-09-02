@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Signature } from "starknet";
 import { ekuboConfig } from "@/config/dapp";
 import type { MultisigDetail } from "@/lib/multisig";
-import { createMultisigStrk20Proposal } from "./create-multisig-strk20-proposal";
+import { createMultisigStrk20Proposal } from "../create-multisig-strk20-proposal";
 
 export type CreateMultisigSwapProposalParams = {
   multisig: MultisigDetail;

@@ -16,6 +16,16 @@ export type EkuboConfig = {
   pools: EkuboPoolConfig[];
 };
 
+export type VesuVaultConfig = {
+  underlyingToken: string;
+  vTokenAddress: string;
+};
+
+export type VesuConfig = {
+  anonymizerAddress: string;
+  vaults: VesuVaultConfig[];
+};
+
 export const ekuboDevnetConfig: EkuboConfig = {
   executorAddress: "",
   coreAddress: "",
@@ -53,6 +63,21 @@ export const ekuboMainnetConfig: EkuboConfig = {
   pools: [],
 };
 
+export const vesuDevnetConfig: VesuConfig = {
+  anonymizerAddress: "",
+  vaults: [],
+};
+
+export const vesuSepoliaConfig: VesuConfig = {
+  anonymizerAddress: "",
+  vaults: [],
+};
+
+export const vesuMainnetConfig: VesuConfig = {
+  anonymizerAddress: "",
+  vaults: [],
+};
+
 const ekuboConfigs: Record<Network, EkuboConfig> = {
   devnet: ekuboDevnetConfig,
   sepolia: ekuboSepoliaConfig,
@@ -60,3 +85,11 @@ const ekuboConfigs: Record<Network, EkuboConfig> = {
 };
 
 export const ekuboConfig = ekuboConfigs[network];
+
+const vesuConfigs: Record<Network, VesuConfig> = {
+  devnet: vesuDevnetConfig,
+  sepolia: vesuSepoliaConfig,
+  mainnet: vesuMainnetConfig,
+};
+
+export const vesuConfig = vesuConfigs[network];
