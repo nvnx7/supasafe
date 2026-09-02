@@ -27,8 +27,8 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
-import { TOKENS } from "@/config/constants";
 import { vesuConfig } from "@/config/dapp";
+import { getTokenByAddress } from "@/config/tokens";
 import { useMultisigProposalContext } from "@/hooks/use-multisig-proposal-context";
 import {
   formatTokenAmount,
@@ -48,9 +48,7 @@ type LendingVault = {
 
 function getConfiguredVaults(): LendingVault[] {
   return vesuConfig.vaults.flatMap((vault) => {
-    const underlying = TOKENS.find(
-      (token) => BigInt(token.address) === BigInt(vault.underlyingTokenAddress),
-    );
+    const underlying = getTokenByAddress(vault.underlyingTokenAddress);
     if (!underlying) return [];
 
     return [
