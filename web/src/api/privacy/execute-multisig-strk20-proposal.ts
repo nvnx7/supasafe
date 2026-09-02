@@ -14,6 +14,15 @@ export async function executeMultisigStrk20Proposal({
   proposal,
   viewingKey,
 }: ExecuteMultisigStrk20ProposalParams) {
+  return submitStrk20Relay({
+    callAndProof: await proveMultisigStrk20Proposal({ proposal, viewingKey }),
+  });
+}
+
+export async function proveMultisigStrk20Proposal({
+  proposal,
+  viewingKey,
+}: ExecuteMultisigStrk20ProposalParams) {
   if (proposal.status !== "ready") {
     throw new Error("Collect the required approvals before executing.");
   }
@@ -53,7 +62,7 @@ export async function executeMultisigStrk20Proposal({
     proposal.provingBlockId,
   );
 
-  return submitStrk20Relay({ callAndProof });
+  return callAndProof;
 }
 
 function createStoredInvocationSigner(): SignerInterface {

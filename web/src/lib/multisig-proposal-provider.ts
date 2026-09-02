@@ -23,6 +23,12 @@ export type MultisigProposalDisplay = {
   outputToken?: { symbol: string; address: string };
   minimumReceived?: string;
   recipient?: string;
+  avnu?: {
+    quoteId: string;
+    poolFeeToken: string;
+    tip: "slow" | "normal" | "fast";
+    slippage: number;
+  };
 };
 
 export type MultisigProposal = {
@@ -138,6 +144,16 @@ function normalizeProposal(proposal: MultisigProposal): MultisigProposal {
         : {}),
       ...(proposal.display.recipient
         ? { recipient: normalizeAddress(proposal.display.recipient) }
+        : {}),
+      ...(proposal.display.avnu
+        ? {
+            avnu: {
+              ...proposal.display.avnu,
+              poolFeeToken: normalizeAddress(
+                proposal.display.avnu.poolFeeToken,
+              ),
+            },
+          }
         : {}),
     },
     signatures: proposal.signatures.map((signature) => ({
