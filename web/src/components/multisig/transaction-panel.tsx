@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LendingForm } from "@/components/multisig/lending-form";
 import { TransactionForm } from "@/components/multisig/transaction-form";
 import {
   Card,
@@ -12,15 +13,18 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TransactionKind } from "@/lib/multisig";
 
-const TABS: { value: TransactionKind; label: string }[] = [
+type TransactionPanelTab = TransactionKind | "lend";
+
+const TABS: { value: TransactionPanelTab; label: string }[] = [
   { value: "deposit", label: "Deposit" },
   { value: "withdraw", label: "Withdraw" },
   { value: "transfer", label: "Transfer" },
   { value: "swap", label: "Swap" },
+  { value: "lend", label: "Lend" },
 ];
 
 export function TransactionPanel() {
-  const [activeKind, setActiveKind] = useState<TransactionKind>("deposit");
+  const [activeTab, setActiveTab] = useState<TransactionPanelTab>("deposit");
 
   return (
     <Card>
@@ -33,8 +37,8 @@ export function TransactionPanel() {
       </CardHeader>
       <CardContent>
         <Tabs
-          value={activeKind}
-          onValueChange={(value) => setActiveKind(value as TransactionKind)}
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as TransactionPanelTab)}
           className="flex flex-col gap-6"
         >
           <TabsList>
@@ -44,8 +48,12 @@ export function TransactionPanel() {
               </TabsTrigger>
             ))}
           </TabsList>
-          <TabsContent value={activeKind}>
-            <TransactionForm kind={activeKind} />
+          <TabsContent value={activeTab}>
+            {activeTab === "lend" ? (
+              <LendingForm />
+            ) : (
+              <TransactionForm kind={activeTab} />
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>
