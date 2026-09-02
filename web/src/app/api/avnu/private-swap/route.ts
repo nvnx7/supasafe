@@ -4,6 +4,7 @@ import {
   submitPrivateSwap,
 } from "@avnu/avnu-sdk";
 import { getAvnuOptions } from "@/api/privacy/avnu/config";
+import { apiKeyPaymasterAvnu } from "@/config/env";
 import { networkConfig } from "@/config/network";
 
 export const runtime = "nodejs";
@@ -96,11 +97,10 @@ export async function POST(request: Request) {
 }
 
 function getPaymasterApiKey() {
-  const apiKey = process.env.AVNU_PAYMASTER_API_KEY;
-  if (!apiKey) {
+  if (!apiKeyPaymasterAvnu) {
     throw new Error("The AVNU paymaster API key is not configured.");
   }
-  return apiKey;
+  return apiKeyPaymasterAvnu;
 }
 
 function toPrivateFeeMode(feeMode: FeeMode): PrivateFeeMode {
