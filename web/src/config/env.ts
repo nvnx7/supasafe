@@ -1,9 +1,7 @@
 export type Network = "devnet" | "sepolia" | "mainnet";
 
-export const network = "sepolia" as Network;
-
-// export const network: Network =
-//   (process.env.NEXT_PUBLIC_STARKNET_NETWORK as Network) || "devnet";
+export const network: Network =
+  (process.env.NEXT_PUBLIC_STARKNET_NETWORK as Network) || "devnet";
 
 export const isDevnet = network === "devnet";
 export const isSepolia = network === "sepolia";
@@ -21,3 +19,5 @@ export const indexerUrlMainnet = process.env
   .NEXT_PUBLIC_INDEXER_URL_MAINNET as string;
 export const apiKeyStarkscan = process.env
   .NEXT_PUBLIC_API_KEY_STARKSCAN as string;
+
+export const apiKeyPaymasterAvnu = process.env.API_KEY_PAYMASTER_AVNU as string;
