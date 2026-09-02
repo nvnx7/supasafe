@@ -19,8 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
-import { TOKENS } from "@/config/constants";
 import { avnuConfig } from "@/config/dapp";
+import { getTokenByAddress, tokens } from "@/config/tokens";
 import { useMultisigProposalContext } from "@/hooks/use-multisig-proposal-context";
 import {
   formatTokenAmount,
@@ -28,13 +28,13 @@ import {
   parseTokenAmount,
 } from "@/lib/multisig";
 
-const TOKEN_ITEMS = TOKENS.map((token) => ({
+const TOKEN_ITEMS = tokens.map((token) => ({
   label: token.symbol,
   value: token.address,
 }));
 
 function getToken(address: string) {
-  const token = TOKENS.find((item) => item.address === address);
+  const token = getTokenByAddress(address);
   if (!token) {
     throw new Error("Unsupported token.");
   }
@@ -51,12 +51,12 @@ export function AvnuSwapForm() {
     isSupasafeViewKeyReady,
     createProposalParams,
   } = useMultisigProposalContext(multisigAddress);
-  const [tokenAddress, setTokenAddress] = useState(TOKENS[0]?.address ?? "");
+  const [tokenAddress, setTokenAddress] = useState(tokens[0]?.address ?? "");
   const [toTokenAddress, setToTokenAddress] = useState(
-    TOKENS[1]?.address ?? "",
+    tokens[1]?.address ?? "",
   );
   const [feeTokenAddress, setFeeTokenAddress] = useState(
-    TOKENS[1]?.address ?? "",
+    tokens[1]?.address ?? "",
   );
   const [slippage, setSlippage] = useState("0.01");
   const [amount, setAmount] = useState("");
@@ -67,10 +67,15 @@ export function AvnuSwapForm() {
   const token = getToken(tokenAddress);
   const toToken = getToken(toTokenAddress);
   const feeToken = getToken(feeTokenAddress);
-  const parsedAmount = useMemo(
-    () => parseTokenAmount(deferredAmount, token.decimals),
-    [deferredAmount, token.decimals],
-  );
+  const parsedAmount = useMemo(() => {
+    if (!isValidAmount(deferredAmount)) return undefined;
+
+    try {
+      return parseTokenAmount(deferredAmount, token.decimals);
+    } catch {
+      return undefined;
+    }
+  }, [deferredAmount, token.decimals]);
   const quote = useAvnuPrivateSwapQuote({
     sellTokenAddress: token.address,
     buyTokenAddress: toToken.address,
@@ -153,6 +158,7 @@ export function AvnuSwapForm() {
           />
         </div>
         <Select
+          items={TOKEN_ITEMS}
           onValueChange={(value) => setTokenAddress(value ?? "")}
           value={token.address}
         >
@@ -196,6 +202,7 @@ export function AvnuSwapForm() {
           />
         </div>
         <Select
+          items={TOKEN_ITEMS}
           onValueChange={(value) => setToTokenAddress(value ?? "")}
           value={toToken.address}
         >
@@ -216,6 +223,7 @@ export function AvnuSwapForm() {
         <Field className="grid gap-2">
           <FieldLabel htmlFor="avnu-fee-token">Pool fee token</FieldLabel>
           <Select
+            items={TOKEN_ITEMS}
             onValueChange={(value) => setFeeTokenAddress(value ?? "")}
             value={feeToken.address}
           >

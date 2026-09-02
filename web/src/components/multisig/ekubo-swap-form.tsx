@@ -20,8 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
-import { TOKENS } from "@/config/constants";
 import { ekuboConfig } from "@/config/dapp";
+import { getTokenByAddress, tokens } from "@/config/tokens";
 import { useMultisigProposalContext } from "@/hooks/use-multisig-proposal-context";
 import {
   formatTokenAmount,
@@ -29,13 +29,13 @@ import {
   parseTokenAmount,
 } from "@/lib/multisig";
 
-const TOKEN_ITEMS = TOKENS.map((token) => ({
+const TOKEN_ITEMS = tokens.map((token) => ({
   label: token.symbol,
   value: token.address,
 }));
 
 function getToken(address: string) {
-  const token = TOKENS.find((item) => item.address === address);
+  const token = getTokenByAddress(address);
   if (!token) {
     throw new Error("Unsupported token.");
   }
@@ -52,9 +52,9 @@ export function EkuboSwapForm() {
     isSupasafeViewKeyReady,
     createProposalParams,
   } = useMultisigProposalContext(multisigAddress);
-  const [tokenAddress, setTokenAddress] = useState(TOKENS[0]?.address ?? "");
+  const [tokenAddress, setTokenAddress] = useState(tokens[0]?.address ?? "");
   const [toTokenAddress, setToTokenAddress] = useState(
-    TOKENS[1]?.address ?? "",
+    tokens[1]?.address ?? "",
   );
   const [amount, setAmount] = useState("");
   const deferredAmount = useDeferredValue(amount);
@@ -63,10 +63,15 @@ export function EkuboSwapForm() {
 
   const token = getToken(tokenAddress);
   const toToken = getToken(toTokenAddress);
-  const parsedAmount = useMemo(
-    () => parseTokenAmount(deferredAmount, token.decimals),
-    [deferredAmount, token.decimals],
-  );
+  const parsedAmount = useMemo(() => {
+    if (!isValidAmount(deferredAmount)) return undefined;
+
+    try {
+      return parseTokenAmount(deferredAmount, token.decimals);
+    } catch {
+      return undefined;
+    }
+  }, [deferredAmount, token.decimals]);
   const quote = useEkuboSwapQuote({
     fromToken: token.address,
     toToken: toToken.address,
@@ -150,6 +155,7 @@ export function EkuboSwapForm() {
           />
         </div>
         <Select
+          items={TOKEN_ITEMS}
           onValueChange={(value) => setTokenAddress(value ?? "")}
           value={token.address}
         >
@@ -193,6 +199,7 @@ export function EkuboSwapForm() {
           />
         </div>
         <Select
+          items={TOKEN_ITEMS}
           onValueChange={(value) => setToTokenAddress(value ?? "")}
           value={toToken.address}
         >
