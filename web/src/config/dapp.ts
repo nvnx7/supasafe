@@ -26,6 +26,11 @@ export type VesuConfig = {
   vaults: VesuVaultConfig[];
 };
 
+export type AvnuConfig = {
+  baseUrl: string;
+  paymasterBaseUrl: string;
+};
+
 export const ekuboDevnetConfig: EkuboConfig = {
   executorAddress: "",
   coreAddress: "",
@@ -93,6 +98,21 @@ export const vesuMainnetConfig: VesuConfig = {
   ],
 };
 
+export const avnuDevnetConfig: AvnuConfig = {
+  baseUrl: "",
+  paymasterBaseUrl: "",
+};
+
+export const avnuSepoliaConfig: AvnuConfig = {
+  baseUrl: "https://sepolia.api.avnu.fi",
+  paymasterBaseUrl: "https://sepolia.paymaster.avnu.fi",
+};
+
+export const avnuMainnetConfig: AvnuConfig = {
+  baseUrl: "https://starknet.api.avnu.fi",
+  paymasterBaseUrl: "https://starknet.paymaster.avnu.fi",
+};
+
 const ekuboConfigs: Record<Network, EkuboConfig> = {
   devnet: ekuboDevnetConfig,
   sepolia: ekuboSepoliaConfig,
@@ -108,3 +128,11 @@ const vesuConfigs: Record<Network, VesuConfig> = {
 };
 
 export const vesuConfig = vesuConfigs[network];
+
+const avnuConfigs: Record<Network, AvnuConfig> = {
+  devnet: avnuDevnetConfig,
+  sepolia: avnuSepoliaConfig,
+  mainnet: avnuMainnetConfig,
+};
+
+export const avnuConfig = avnuConfigs[network];
