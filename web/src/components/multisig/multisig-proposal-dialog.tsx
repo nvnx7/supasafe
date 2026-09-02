@@ -13,6 +13,7 @@ import {
   useGetMultisig,
   useGetMultisigViewingPublicKey,
 } from "@/api/multisig";
+import { useExecuteMultisigAvnuPrivateSwapProposal } from "@/api/privacy/avnu";
 import {
   useExecuteMultisigStrk20Proposal,
   useGetProposal,
@@ -77,9 +78,17 @@ export function MultisigProposalDialog({
     proposal?.multisigAddress,
   );
   const { saveProposalSignatureAsync, isPending } = useSaveProposalSignature();
-  const { executeMultisigStrk20ProposalAsync, isPending: isExecuting } =
-    useExecuteMultisigStrk20Proposal();
+  const {
+    executeMultisigStrk20ProposalAsync,
+    isPending: isExecutingStrk20Proposal,
+  } = useExecuteMultisigStrk20Proposal();
+  const {
+    executeMultisigAvnuPrivateSwapProposalAsync,
+    isPending: isExecutingAvnuProposal,
+  } = useExecuteMultisigAvnuPrivateSwapProposal();
   const [error, setError] = useState<Error | null>(null);
+  const isAvnuPrivateSwap = proposal?.display.kind === "avnu-private-swap";
+  const isExecuting = isExecutingStrk20Proposal || isExecutingAvnuProposal;
 
   let multisigViewingKey: bigint | null = null;
   if (supasafeViewKey && encryptedKey.data) {
@@ -163,10 +172,15 @@ export function MultisigProposalDialog({
 
     setError(null);
     try {
-      const transaction = await executeMultisigStrk20ProposalAsync({
-        proposal,
-        viewingKey: multisigViewingKey,
-      });
+      const transaction = isAvnuPrivateSwap
+        ? await executeMultisigAvnuPrivateSwapProposalAsync({
+            proposal,
+            viewingKey: multisigViewingKey,
+          })
+        : await executeMultisigStrk20ProposalAsync({
+            proposal,
+            viewingKey: multisigViewingKey,
+          });
       toast.add({
         type: "success",
         title: "Proposal executed",

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LendingForm } from "@/components/multisig/lending-form";
+import { SwapPanel } from "@/components/multisig/swap-panel";
 import { TransactionForm } from "@/components/multisig/transaction-form";
 import {
   Card,
@@ -51,6 +52,8 @@ export function TransactionPanel() {
           <TabsContent value={activeTab}>
             {activeTab === "lend" ? (
               <LendingForm />
+            ) : activeTab === "swap" ? (
+              <SwapPanel />
             ) : (
               <TransactionForm kind={activeTab} />
             )}

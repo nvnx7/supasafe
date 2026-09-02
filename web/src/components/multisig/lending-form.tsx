@@ -1,20 +1,7 @@
 "use client";
 
-import {
-  type UseSignTypedDataArgs,
-  useAccount,
-  useProvider,
-  useSignTypedData,
-} from "@starknetfoundation/starknet-start-react";
-import { derivePublicKey } from "@starkware-libs/starknet-privacy-sdk/utils";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import type { Signature } from "starknet";
-import {
-  useGetEncryptedViewingKey,
-  useGetMultisig,
-  useGetMultisigViewingPublicKey,
-} from "@/api/multisig";
 import {
   useCreateMultisigVesuSupplyProposal,
   useCreateMultisigVesuWithdrawProposal,
@@ -42,15 +29,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
 import { TOKENS } from "@/config/constants";
 import { vesuConfig } from "@/config/dapp";
-import { networkConfig } from "@/config/network";
-import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
+import { useMultisigProposalContext } from "@/hooks/use-multisig-proposal-context";
 import {
   formatTokenAmount,
   isValidAmount,
   parseTokenAmount,
 } from "@/lib/multisig";
-import { buildApprovalTypedData } from "@/lib/signing";
-import { decryptViewKey } from "@/utils/encryption";
 
 type LendingMode = "supply" | "withdraw";
 
@@ -83,14 +67,13 @@ function getConfiguredVaults(): LendingVault[] {
 
 export function LendingForm() {
   const { multisigAddress: address } = useParams<{ multisigAddress: string }>();
-  const { address: owner } = useAccount();
-  const { provider } = useProvider();
-  const { signTypedDataAsync } = useSignTypedData({});
-  const { data: multisig } = useGetMultisig(address);
-  const { privateKey: supasafeViewKey, isReady: isSupasafeViewKeyReady } =
-    useSupasafeViewKey();
-  const encryptedKey = useGetEncryptedViewingKey(address, owner);
-  const viewingPublicKey = useGetMultisigViewingPublicKey(address);
+  const {
+    multisig,
+    owner,
+    viewingKey: multisigViewingKey,
+    isSupasafeViewKeyReady,
+    createProposalParams,
+  } = useMultisigProposalContext(address);
   const {
     createMultisigVesuSupplyProposalAsync,
     isPending: isCreatingSupplyProposal,
@@ -108,27 +91,6 @@ export function LendingForm() {
   );
   const [amount, setAmount] = useState("");
   const [submitted, setSubmitted] = useState(false);
-
-  const multisigViewingKey = useMemo(() => {
-    if (
-      !supasafeViewKey ||
-      !encryptedKey.data ||
-      viewingPublicKey.data === undefined
-    ) {
-      return undefined;
-    }
-
-    try {
-      const key = decryptViewKey({
-        ephemeralPubkey: encryptedKey.data.ephemeralPubkey,
-        ciphertext: encryptedKey.data.ciphertext,
-        recipientPrivateKey: supasafeViewKey,
-      });
-      return derivePublicKey(key) === viewingPublicKey.data ? key : undefined;
-    } catch {
-      return undefined;
-    }
-  }, [encryptedKey.data, supasafeViewKey, viewingPublicKey.data]);
 
   const selectedVault = vaults.find(
     (vault) => BigInt(vault.underlyingToken) === BigInt(underlyingToken || 0),
@@ -168,26 +130,7 @@ export function LendingForm() {
     if (!selectedVault || !rawAmount || amountError) return;
 
     try {
-      if (!multisig || !owner || !multisigViewingKey) return;
-
-      const provingBlockId = Math.max(
-        0,
-        (await provider.getBlockNumber()) - 10,
-      );
-      const proposalParams = {
-        multisig,
-        owner,
-        viewingKey: multisigViewingKey,
-        provingBlockId,
-        signApproval: async (callSetHash: bigint) =>
-          (await signTypedDataAsync(
-            buildApprovalTypedData(
-              multisig.address,
-              callSetHash,
-              networkConfig.chainId,
-            ) as unknown as UseSignTypedDataArgs,
-          )) as Signature,
-      };
+      const proposalParams = await createProposalParams();
 
       if (mode === "supply") {
         await createMultisigVesuSupplyProposalAsync({

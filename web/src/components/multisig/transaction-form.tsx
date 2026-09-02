@@ -1,31 +1,13 @@
 "use client";
 
-import {
-  type UseSignTypedDataArgs,
-  useAccount,
-  useProvider,
-  useSignTypedData,
-} from "@starknetfoundation/starknet-start-react";
-import { derivePublicKey } from "@starkware-libs/starknet-privacy-sdk/utils";
-import { ArrowDownIcon } from "lucide-react";
-import Image from "next/image";
 import { useParams } from "next/navigation";
-import { useDeferredValue, useMemo, useRef, useState } from "react";
-import type { Signature } from "starknet";
-import {
-  useGetEncryptedViewingKey,
-  useGetMultisig,
-  useGetMultisigViewingPublicKey,
-} from "@/api/multisig";
+import { useRef, useState } from "react";
+
 import {
   useCreateMultisigTransferProposal,
   useCreateMultisigWithdrawProposal,
   useDepositToMultisig,
 } from "@/api/privacy";
-import {
-  useCreateMultisigSwapProposal,
-  useEkuboSwapQuote,
-} from "@/api/privacy/ekubo";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -46,21 +28,19 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { TOKENS } from "@/config/constants";
-import { networkConfig } from "@/config/network";
-import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
+import { useMultisigProposalContext } from "@/hooks/use-multisig-proposal-context";
 import {
-  formatTokenAmount,
   isValidAddress,
   isValidAmount,
   parseTokenAmount,
   type TransactionKind,
   truncateAddress,
 } from "@/lib/multisig";
-import { buildApprovalTypedData } from "@/lib/signing";
-import { decryptViewKey } from "@/utils/encryption";
+
+type StandardTransactionKind = Exclude<TransactionKind, "swap">;
 
 const KINDS: Record<
-  TransactionKind,
+  StandardTransactionKind,
   { needsRecipient: boolean; cta: string; hint: string; recipientLabel: string }
 > = {
   deposit: {
@@ -81,12 +61,6 @@ const KINDS: Record<
     hint: "Sends funds from this multisig to another account.",
     recipientLabel: "Recipient",
   },
-  swap: {
-    needsRecipient: false,
-    cta: "Propose swap",
-    hint: "Swaps this multisig's private ETH or STRK balance through Ekubo.",
-    recipientLabel: "",
-  },
 };
 
 const TOKEN_ITEMS = TOKENS.map((token) => ({
@@ -100,18 +74,16 @@ function isWalletTimeout(reason: unknown) {
   );
 }
 
-export function TransactionForm({ kind }: { kind: TransactionKind }) {
+export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
   const { needsRecipient, cta, hint, recipientLabel } = KINDS[kind];
-  const isSwap = kind === "swap";
-  const { multisigAddress: address } = useParams<{ multisigAddress: string }>();
-  const { address: owner } = useAccount();
-  const { provider } = useProvider();
-  const { signTypedDataAsync } = useSignTypedData({});
-  const { data: multisig } = useGetMultisig(address);
-  const { privateKey: supasafeViewKey, isReady: isSupasafeViewKeyReady } =
-    useSupasafeViewKey();
-  const encryptedKey = useGetEncryptedViewingKey(address, owner);
-  const viewingPublicKey = useGetMultisigViewingPublicKey(address);
+  const { multisigAddress } = useParams<{ multisigAddress: string }>();
+  const {
+    multisig,
+    owner,
+    viewingKey,
+    isSupasafeViewKeyReady,
+    createProposalParams,
+  } = useMultisigProposalContext(multisigAddress);
   const {
     createMultisigWithdrawProposalAsync,
     isPending: isCreatingWithdrawProposal,
@@ -122,49 +94,18 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
     isPending: isCreatingTransferProposal,
     error: transferError,
   } = useCreateMultisigTransferProposal();
-  const {
-    createMultisigSwapProposalAsync,
-    isPending: isCreatingSwapProposal,
-    error: swapError,
-  } = useCreateMultisigSwapProposal();
   const { depositToMultisigAsync, reset: resetDeposit } =
     useDepositToMultisig();
-
   const [token, setToken] = useState(TOKENS[0]?.address ?? "");
   const [amount, setAmount] = useState("");
-  const [toToken, setToToken] = useState(TOKENS[1]?.address ?? "");
   const [recipient, setRecipient] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const depositRequest = useRef<Promise<{ transaction_hash: string }> | null>(
     null,
   );
-
-  const multisigViewingKey = useMemo(() => {
-    if (
-      !supasafeViewKey ||
-      !encryptedKey.data ||
-      viewingPublicKey.data === undefined
-    ) {
-      return undefined;
-    }
-
-    try {
-      const key = decryptViewKey({
-        ephemeralPubkey: encryptedKey.data.ephemeralPubkey,
-        ciphertext: encryptedKey.data.ciphertext,
-        recipientPrivateKey: supasafeViewKey,
-      });
-      return derivePublicKey(key) === viewingPublicKey.data ? key : undefined;
-    } catch {
-      return undefined;
-    }
-  }, [encryptedKey.data, supasafeViewKey, viewingPublicKey.data]);
-
+  const selectedToken = TOKENS.find((entry) => entry.address === token);
   const isCreatingProposal =
-    isCreatingWithdrawProposal ||
-    isCreatingTransferProposal ||
-    isCreatingSwapProposal;
-
+    isCreatingWithdrawProposal || isCreatingTransferProposal;
   const amountError = isValidAmount(amount)
     ? undefined
     : "Enter an amount greater than zero.";
@@ -173,50 +114,13 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
       ? undefined
       : "Enter a valid address.";
   const valid = !amountError && !recipientError;
-  const toTokenItems = TOKEN_ITEMS.filter((item) => item.value !== token);
-  const selectedToken = TOKENS.find((entry) => entry.address === token);
-  const selectedToToken = TOKENS.find((entry) => entry.address === toToken);
-  const swapAmount = useMemo(() => {
-    if (!isSwap || !selectedToken || amountError) return undefined;
-
-    try {
-      return parseTokenAmount(amount, selectedToken.decimals);
-    } catch {
-      return undefined;
-    }
-  }, [amount, amountError, isSwap, selectedToken]);
-  const deferredSwapAmount = useDeferredValue(swapAmount);
-  const swapQuote = useEkuboSwapQuote({
-    fromToken: isSwap ? token : undefined,
-    toToken: isSwap ? toToken : undefined,
-    amount: deferredSwapAmount,
-  });
-  const swapOutputAmount =
-    swapQuote.data && selectedToToken
-      ? formatTokenAmount(swapQuote.data.outputAmount, selectedToToken.decimals)
-      : deferredSwapAmount
-        ? "..."
-        : "0";
-
-  function selectSwapFromToken(value: string | null) {
-    const nextToken = value ?? "";
-    setToken(nextToken);
-    if (nextToken === toToken) setToToken(token);
-  }
-
-  function switchSwapTokens() {
-    setToken(toToken);
-    setToToken(token);
-  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSubmitted(true);
-    if (!valid) return;
+    if (!valid || !selectedToken) return;
 
     if (kind === "deposit") {
-      const selectedToken = TOKENS.find((entry) => entry.address === token);
-      if (!selectedToken) return;
       if (depositRequest.current) {
         toast.add({
           type: "info",
@@ -230,7 +134,7 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
         const request = depositToMultisigAsync({
           token,
           amount: parseTokenAmount(amount, selectedToken.decimals),
-          multisigAddress: address,
+          multisigAddress,
         });
         depositRequest.current = request;
         resetDeposit();
@@ -281,66 +185,24 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
     }
 
     try {
-      if (!multisig || !owner || !multisigViewingKey) {
-        return;
-      }
-
-      if (!selectedToken) return;
-
-      const provingBlockId = Math.max(
-        0,
-        (await provider.getBlockNumber()) - 10,
-      );
-      const proposalParams = {
-        multisig,
-        owner,
-        viewingKey: multisigViewingKey,
-        provingBlockId,
-        signApproval: async (callSetHash: bigint) =>
-          (await signTypedDataAsync(
-            buildApprovalTypedData(
-              multisig.address,
-              callSetHash,
-              networkConfig.chainId,
-            ) as unknown as UseSignTypedDataArgs,
-          )) as Signature,
+      const proposalParams = await createProposalParams();
+      const proposal = {
+        ...proposalParams,
+        token,
+        tokenSymbol: selectedToken.symbol,
+        amount: parseTokenAmount(amount, selectedToken.decimals),
+        recipient: recipient.trim(),
       };
 
       if (kind === "withdraw") {
-        await createMultisigWithdrawProposalAsync({
-          ...proposalParams,
-          token,
-          tokenSymbol: selectedToken.symbol,
-          amount: parseTokenAmount(amount, selectedToken.decimals),
-          recipient: recipient.trim(),
-        });
-      } else if (kind === "transfer") {
-        await createMultisigTransferProposalAsync({
-          ...proposalParams,
-          token,
-          tokenSymbol: selectedToken.symbol,
-          amount: parseTokenAmount(amount, selectedToken.decimals),
-          recipient: recipient.trim(),
-        });
-      } else if (selectedToToken) {
-        await createMultisigSwapProposalAsync({
-          ...proposalParams,
-          fromToken: token,
-          fromTokenSymbol: selectedToken.symbol,
-          toToken,
-          toTokenSymbol: selectedToToken.symbol,
-          amount: parseTokenAmount(amount, selectedToken.decimals),
-          minimumReceived: 0n,
-        });
+        await createMultisigWithdrawProposalAsync(proposal);
+      } else {
+        await createMultisigTransferProposalAsync(proposal);
       }
       toast.add({
         type: "success",
         title:
-          kind === "withdraw"
-            ? "Withdrawal proposed"
-            : kind === "transfer"
-              ? "Transfer proposed"
-              : "Swap proposed",
+          kind === "withdraw" ? "Withdrawal proposed" : "Transfer proposed",
         description: "The proposal is ready for owner approvals.",
       });
     } catch (reason) {
@@ -354,151 +216,45 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form noValidate onSubmit={handleSubmit}>
       <FieldGroup>
-        {isSwap ? (
-          <div className="grid gap-3">
-            <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
-              <span>Powered By</span>
-              <Image
-                src="/ekubo.svg"
-                alt="Ekubo"
-                width={90}
-                height={16}
-                className="h-4 w-auto dark:invert"
-              />
-            </div>
-            <Field
-              data-invalid={submitted && amountError ? true : undefined}
-              className="grid gap-4 rounded-lg border border-border bg-muted/30 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
-            >
-              <div className="grid gap-2">
-                <FieldLabel htmlFor="swap-amount">From</FieldLabel>
-                <Input
-                  id="swap-amount"
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                  placeholder="0"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  aria-invalid={submitted && amountError ? true : undefined}
-                  className="h-10 border-0 bg-transparent px-0 py-0 text-2xl font-medium shadow-none focus-visible:ring-0 md:text-2xl"
-                />
-              </div>
-              <Select
-                items={TOKEN_ITEMS}
-                value={token}
-                onValueChange={selectSwapFromToken}
-              >
-                <SelectTrigger
-                  id="swap-token"
-                  className="min-w-28 bg-background"
-                >
-                  <SelectValue placeholder="Select a token" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {TOKEN_ITEMS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              {submitted && amountError ? (
-                <FieldError className="sm:col-span-2">{amountError}</FieldError>
-              ) : null}
-            </Field>
+        <Field>
+          <FieldLabel htmlFor={`${kind}-token`}>Token</FieldLabel>
+          <Select
+            items={TOKEN_ITEMS}
+            onValueChange={(value) => setToken(value ?? "")}
+            value={token}
+          >
+            <SelectTrigger id={`${kind}-token`}>
+              <SelectValue placeholder="Select a token" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {TOKEN_ITEMS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
 
-            <div className="relative z-10 -my-8 flex justify-center">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={switchSwapTokens}
-                aria-label="Switch swap tokens"
-                title="Switch swap tokens"
-                className="size-12 bg-background"
-              >
-                <ArrowDownIcon />
-              </Button>
-            </div>
-
-            <Field className="grid gap-4 rounded-lg border border-border bg-muted/30 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-              <div className="grid gap-2">
-                <FieldLabel htmlFor="swap-to-token">To</FieldLabel>
-                <output
-                  aria-live="polite"
-                  className="flex h-10 min-w-0 items-center truncate text-2xl font-medium text-muted-foreground"
-                >
-                  {swapOutputAmount}
-                </output>
-              </div>
-              <Select
-                items={toTokenItems}
-                value={toToken}
-                onValueChange={(value) => setToToken(value ?? "")}
-              >
-                <SelectTrigger
-                  id="swap-to-token"
-                  className="min-w-28 bg-background"
-                >
-                  <SelectValue placeholder="Select a token" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {toTokenItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-        ) : (
-          <>
-            <Field>
-              <FieldLabel htmlFor={`${kind}-token`}>Token</FieldLabel>
-              <Select
-                items={TOKEN_ITEMS}
-                value={token}
-                onValueChange={(value) => setToken(value ?? "")}
-              >
-                <SelectTrigger id={`${kind}-token`}>
-                  <SelectValue placeholder="Select a token" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {TOKEN_ITEMS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <Field data-invalid={submitted && amountError ? true : undefined}>
-              <FieldLabel htmlFor={`${kind}-amount`}>Amount</FieldLabel>
-              <Input
-                id={`${kind}-amount`}
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                placeholder="0.0"
-                inputMode="decimal"
-                autoComplete="off"
-                aria-invalid={submitted && amountError ? true : undefined}
-              />
-              {submitted && amountError ? (
-                <FieldError>{amountError}</FieldError>
-              ) : null}
-            </Field>
-          </>
-        )}
+        <Field data-invalid={submitted && amountError ? true : undefined}>
+          <FieldLabel htmlFor={`${kind}-amount`}>Amount</FieldLabel>
+          <Input
+            aria-invalid={submitted && amountError ? true : undefined}
+            autoComplete="off"
+            id={`${kind}-amount`}
+            inputMode="decimal"
+            onChange={(event) => setAmount(event.target.value)}
+            placeholder="0.0"
+            value={amount}
+          />
+          {submitted && amountError ? (
+            <FieldError>{amountError}</FieldError>
+          ) : null}
+        </Field>
 
         {needsRecipient ? (
           <Field data-invalid={submitted && recipientError ? true : undefined}>
@@ -506,14 +262,14 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
               {recipientLabel}
             </FieldLabel>
             <Input
-              id={`${kind}-recipient`}
-              value={recipient}
-              onChange={(event) => setRecipient(event.target.value)}
-              placeholder="0x…"
-              spellCheck={false}
+              aria-invalid={submitted && recipientError ? true : undefined}
               autoComplete="off"
               className="font-mono"
-              aria-invalid={submitted && recipientError ? true : undefined}
+              id={`${kind}-recipient`}
+              onChange={(event) => setRecipient(event.target.value)}
+              placeholder="0x..."
+              spellCheck={false}
+              value={recipient}
             />
             {submitted && recipientError ? (
               <FieldError>{recipientError}</FieldError>
@@ -523,33 +279,31 @@ export function TransactionForm({ kind }: { kind: TransactionKind }) {
 
         <FieldDescription>{hint}</FieldDescription>
 
-        {withdrawError || transferError || swapError ? (
+        {withdrawError || transferError ? (
           <FieldError>
             {withdrawError instanceof Error
               ? withdrawError.message
               : transferError instanceof Error
                 ? transferError.message
-                : swapError instanceof Error
-                  ? swapError.message
-                  : "Could not create proposal."}
+                : "Could not create proposal."}
           </FieldError>
         ) : null}
 
-        {kind !== "deposit" && isSupasafeViewKeyReady && !multisigViewingKey ? (
+        {kind !== "deposit" && isSupasafeViewKeyReady && !viewingKey ? (
           <FieldError>
             Recover your Supasafe view key before creating a proposal.
           </FieldError>
         ) : null}
 
         <Button
-          type="submit"
           disabled={
             isCreatingProposal ||
-            (kind !== "deposit" && (!multisig || !owner || !multisigViewingKey))
+            (kind !== "deposit" && (!multisig || !owner || !viewingKey))
           }
+          type="submit"
         >
           {isCreatingProposal ? <Spinner data-icon="inline-start" /> : null}
-          {isCreatingProposal ? "Preparing…" : cta}
+          {isCreatingProposal ? "Preparing..." : cta}
         </Button>
       </FieldGroup>
     </form>
