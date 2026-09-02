@@ -2,9 +2,9 @@
 
 import { IndexerDiscoveryProvider } from "@starkware-libs/starknet-privacy-sdk";
 import { useQuery } from "@tanstack/react-query";
-import { TOKENS } from "@/config/constants";
 import { indexerUrlSepolia } from "@/config/env";
 import { networkConfig } from "@/config/network";
+import { tokens } from "@/config/tokens";
 import { createMultisigPrivateTransfers } from "./multisig-private-transfers";
 
 const DISCOVERY_TIMEOUT_MS = 20_000;
@@ -24,7 +24,7 @@ type GetMultisigStrk20BalancesParams = {
 export async function getMultisigStrk20Balances({
   multisigAddress,
   viewingKey,
-  tokens = TOKENS.map((token) => token.address),
+  tokens: tokenAddresses = tokens.map((token) => token.address),
 }: GetMultisigStrk20BalancesParams): Promise<Strk20Balance[]> {
   const indexer = new IndexerDiscoveryProvider(
     indexerUrlSepolia,
@@ -51,13 +51,13 @@ export async function getMultisigStrk20Balances({
   });
   const { notes } = await withTimeout(
     transfers.discoverNotes({
-      tokens: tokens.map((token) => BigInt(token)),
+      tokens: tokenAddresses.map((token) => BigInt(token)),
     }),
     DISCOVERY_TIMEOUT_MS,
     "Private balance discovery timed out. The indexer did not respond.",
   );
 
-  return tokens.map((token) => {
+  return tokenAddresses.map((token) => {
     const tokenNotes = notes.get(token) ?? [];
     return {
       token,
@@ -85,7 +85,7 @@ function withTimeout<T>(
 export function useGetMultisigStrk20Balances({
   multisigAddress,
   viewingKey,
-  tokens = TOKENS.map((token) => token.address),
+  tokens: tokenAddresses = tokens.map((token) => token.address),
 }: {
   multisigAddress: string | undefined;
   viewingKey: bigint | undefined;
@@ -96,13 +96,13 @@ export function useGetMultisigStrk20Balances({
       "multisigStrk20Balances",
       networkConfig.privacyPoolAddress,
       multisigAddress,
-      tokens,
+      tokenAddresses,
     ],
     queryFn: () =>
       getMultisigStrk20Balances({
         multisigAddress: multisigAddress as string,
         viewingKey: viewingKey as bigint,
-        tokens,
+        tokens: tokenAddresses,
       }),
     enabled: Boolean(multisigAddress && viewingKey),
     staleTime: 5 * 60 * 1000,

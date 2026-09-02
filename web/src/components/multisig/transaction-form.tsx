@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
-import { TOKENS } from "@/config/constants";
+import { getTokenByAddress, tokens } from "@/config/tokens";
 import { useMultisigProposalContext } from "@/hooks/use-multisig-proposal-context";
 import {
   isValidAddress,
@@ -63,7 +63,7 @@ const KINDS: Record<
   },
 };
 
-const TOKEN_ITEMS = TOKENS.map((token) => ({
+const TOKEN_ITEMS = tokens.map((token) => ({
   value: token.address,
   label: token.symbol,
 }));
@@ -96,14 +96,14 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
   } = useCreateMultisigTransferProposal();
   const { depositToMultisigAsync, reset: resetDeposit } =
     useDepositToMultisig();
-  const [token, setToken] = useState(TOKENS[0]?.address ?? "");
+  const [token, setToken] = useState(tokens[0]?.address ?? "");
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const depositRequest = useRef<Promise<{ transaction_hash: string }> | null>(
     null,
   );
-  const selectedToken = TOKENS.find((entry) => entry.address === token);
+  const selectedToken = getTokenByAddress(token);
   const isCreatingProposal =
     isCreatingWithdrawProposal || isCreatingTransferProposal;
   const amountError = isValidAmount(amount)

@@ -23,7 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TOKENS } from "@/config/constants";
+import { tokens } from "@/config/tokens";
 import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
 import { decryptViewKey } from "@/utils/encryption";
 
@@ -114,7 +114,7 @@ export function MultisigBalances() {
         ) : null}
         {balances.data ? (
           <div className="flex flex-col gap-3">
-            {TOKENS.map((token) => {
+            {tokens.map((token) => {
               const balance = balances.data.find(
                 (entry) => BigInt(entry.token) === BigInt(token.address),
               );

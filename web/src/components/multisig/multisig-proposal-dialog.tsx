@@ -30,8 +30,8 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
-import { TOKENS } from "@/config/constants";
 import { networkConfig } from "@/config/network";
+import { getTokenByAddress } from "@/config/tokens";
 import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
 import { truncateAddress } from "@/lib/multisig";
 import { buildApprovalTypedData } from "@/lib/signing";
@@ -116,17 +116,9 @@ export function MultisigProposalDialog({
       ),
   );
   const proposalTokenAddress = proposal?.display.token?.address;
-  const proposalToken = proposalTokenAddress
-    ? TOKENS.find(
-        (token) => BigInt(token.address) === BigInt(proposalTokenAddress),
-      )
-    : undefined;
+  const proposalToken = getTokenByAddress(proposalTokenAddress);
   const proposalOutputTokenAddress = proposal?.display.outputToken?.address;
-  const proposalOutputToken = proposalOutputTokenAddress
-    ? TOKENS.find(
-        (token) => BigInt(token.address) === BigInt(proposalOutputTokenAddress),
-      )
-    : undefined;
+  const proposalOutputToken = getTokenByAddress(proposalOutputTokenAddress);
 
   async function signProposal() {
     if (!address || !proposal) return;
