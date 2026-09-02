@@ -57,7 +57,7 @@ export async function createMultisigVesuWithdrawProposal(
       amount: shares.toString(),
       outputToken: {
         symbol: underlyingTokenSymbol,
-        address: vault.underlyingToken,
+        address: vault.underlyingTokenAddress,
       },
     },
     buildInvocation: (transfers) =>
@@ -73,7 +73,7 @@ export async function createMultisigVesuWithdrawProposal(
           operations.withdraw({ recipient: anonymizerAddress, amount: shares }),
         )
         .surplusTo(multisig.address, false)
-        .with(vault.underlyingToken, (operations) =>
+        .with(vault.underlyingTokenAddress, (operations) =>
           operations.transfer({ recipient: multisig.address, amount: Open }),
         )
         .invoke(({ openNotes }) => {
@@ -89,7 +89,7 @@ export async function createMultisigVesuWithdrawProposal(
             calldata: [
               1n,
               vTokenAddress,
-              vault.underlyingToken,
+              vault.underlyingTokenAddress,
               assets,
               0n,
               outputNote.noteId,

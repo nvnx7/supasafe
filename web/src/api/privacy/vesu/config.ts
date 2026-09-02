@@ -6,7 +6,7 @@ export function getVesuVaultByUnderlying(
   ensureVesuConfigured();
 
   const vault = vesuConfig.vaults.find(
-    (entry) => BigInt(entry.underlyingToken) === BigInt(underlyingToken),
+    (entry) => BigInt(entry.underlyingTokenAddress) === BigInt(underlyingToken),
   );
   if (!vault) {
     throw new Error("This token is not configured for Vesu lending.");
