@@ -1,5 +1,6 @@
 import { type Chain, devnet } from "@starknetfoundation/starknet-start-chains";
 import { constants } from "starknet";
+import { DEVNET_CHAIN_ID } from "./constants";
 import {
   apiKeyStarkscanMainnet,
   indexerUrlMainnet,
@@ -12,8 +13,6 @@ import {
 } from "./env";
 
 export type NetworkType = "devnet" | "sepolia" | "mainnet";
-
-export const DEVNET_CHAIN_ID = "0x4445564e4554"; // "DEVNET" in hex
 
 export type ProvingConfig =
   | {

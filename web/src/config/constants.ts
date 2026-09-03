@@ -11,3 +11,6 @@ export const WEI_PER_TOKEN = 10n ** 18n;
 
 // Owners are addressed by index in the signature bundle.
 export const MAX_OWNERS = 32;
+
+// "DEVNET" in hex
+export const DEVNET_CHAIN_ID = "0x4445564e4554";
