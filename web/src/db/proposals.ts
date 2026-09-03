@@ -35,6 +35,8 @@ export async function listProposals({
   owner: string;
 }) {
   const sql = getDatabase();
+  const normalizedMultisigAddress = normalizeAddress(multisigAddress);
+  const normalizedOwner = normalizeAddress(owner);
   const rows = (await sql`
     SELECT
       proposal_hash,
@@ -52,8 +54,8 @@ export async function listProposals({
     FROM proposals
     INNER JOIN proposal_owners USING (chain_id, proposal_hash)
     WHERE chain_id = ${chainId}
-      AND multisig_address = ${multisigAddress}
-      AND owner_address = ${owner}
+      AND multisig_address = ${normalizedMultisigAddress}
+      AND owner_address = ${normalizedOwner}
       AND status <> 'executed'
     ORDER BY updated_at DESC
   `) as ProposalRow[];
@@ -98,7 +100,8 @@ export async function saveProposal({
   proposal: MultisigProposal;
 }) {
   const sql = getDatabase();
-  const { signatures, ...record } = proposal;
+  const normalizedProposal = normalizeProposal(proposal);
+  const { signatures, ...record } = normalizedProposal;
 
   await sql`
     INSERT INTO proposals (
@@ -173,12 +176,16 @@ export async function saveProposalSignature({
   signature: MultisigProposalSignature;
 }) {
   const sql = getDatabase();
+  const normalizedSignature = {
+    ...signature,
+    owner: normalizeAddress(signature.owner),
+  };
   const [owner] = await sql`
     SELECT owner_address
     FROM proposal_owners
     WHERE chain_id = ${chainId}
       AND proposal_hash = ${proposalHash}
-      AND owner_address = ${signature.owner}
+      AND owner_address = ${normalizedSignature.owner}
   `;
   if (!owner) {
     throw new Error("Signature owner is not part of this proposal.");
@@ -194,9 +201,9 @@ export async function saveProposalSignature({
     ) VALUES (
       ${chainId},
       ${proposalHash},
-      ${signature.owner},
-      ${JSON.stringify(signature.signature)}::jsonb,
-      TO_TIMESTAMP(${signature.signedAt} / 1000.0)
+      ${normalizedSignature.owner},
+      ${JSON.stringify(normalizedSignature.signature)}::jsonb,
+      TO_TIMESTAMP(${normalizedSignature.signedAt} / 1000.0)
     )
     ON CONFLICT (chain_id, proposal_hash, owner_address) DO UPDATE SET
       signature = EXCLUDED.signature,
@@ -301,4 +308,56 @@ async function hydrateProposal(chainId: string, row: ProposalRow) {
 
 function parseJson<T>(value: T | string): T {
   return typeof value === "string" ? (JSON.parse(value) as T) : value;
+}
+
+function normalizeProposal(proposal: MultisigProposal): MultisigProposal {
+  return {
+    ...proposal,
+    multisigAddress: normalizeAddress(proposal.multisigAddress),
+    owners: proposal.owners.map(normalizeAddress),
+    calls: proposal.calls.map((call) => ({
+      ...call,
+      contractAddress: normalizeAddress(call.contractAddress),
+    })),
+    display: {
+      ...proposal.display,
+      ...(proposal.display.token
+        ? {
+            token: {
+              ...proposal.display.token,
+              address: normalizeAddress(proposal.display.token.address),
+            },
+          }
+        : {}),
+      ...(proposal.display.outputToken
+        ? {
+            outputToken: {
+              ...proposal.display.outputToken,
+              address: normalizeAddress(proposal.display.outputToken.address),
+            },
+          }
+        : {}),
+      ...(proposal.display.recipient
+        ? { recipient: normalizeAddress(proposal.display.recipient) }
+        : {}),
+      ...(proposal.display.avnu
+        ? {
+            avnu: {
+              ...proposal.display.avnu,
+              poolFeeToken: normalizeAddress(
+                proposal.display.avnu.poolFeeToken,
+              ),
+            },
+          }
+        : {}),
+    },
+    signatures: proposal.signatures.map((signature) => ({
+      ...signature,
+      owner: normalizeAddress(signature.owner),
+    })),
+  };
+}
+
+function normalizeAddress(address: string) {
+  return `0x${BigInt(address.trim()).toString(16)}`;
 }

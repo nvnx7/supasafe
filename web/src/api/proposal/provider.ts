@@ -1,4 +1,6 @@
-import { LocalStorageMultisigProposalProvider } from "@/lib/multisig-proposal-provider";
+import { networkConfig } from "@/config/network";
+import { HttpMultisigProposalProvider } from "@/lib/http-multisig-proposal-provider";
 
-export const multisigProposalProvider =
-  new LocalStorageMultisigProposalProvider();
+export const multisigProposalProvider = new HttpMultisigProposalProvider(
+  networkConfig.chainId,
+);
