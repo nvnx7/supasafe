@@ -1,5 +1,9 @@
 import { Account, RpcProvider } from "starknet";
-import { deployerAddress, deployerPrivateKey, networkConfig } from "./config.js";
+import {
+  deployerAddress,
+  deployerPrivateKey,
+  networkConfig,
+} from "./config.js";
 import { loadClass } from "./utils.js";
 
 const rpcUrl = networkConfig.rpcUrl;
@@ -8,6 +12,7 @@ const account = new Account({
   provider,
   address: deployerAddress,
   signer: deployerPrivateKey,
+  cairoVersion: "1",
 });
 
 async function main() {

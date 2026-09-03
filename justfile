@@ -39,3 +39,7 @@ devnet:
 # Declare the multisig class and print its hash. Re-run after every devnet restart.
 declare network="devnet":
     cd contracts && bun run scripts/declare.ts {{network}}
+
+# Declare contract classes as needed, then deploy the Supasafe factory.
+deploy network="devnet":
+    cd contracts && bun run scripts/deploy.ts {{network}}

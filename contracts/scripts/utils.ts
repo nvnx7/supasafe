@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { json, } from "starknet";
+import { json } from "starknet";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TARGET_DIR = path.resolve(__dirname, "../target/dev");

@@ -11,6 +11,7 @@ const account = new Account({
   provider,
   address: deployerAddress,
   signer: deployerPrivateKey,
+  cairoVersion: "1",
 });
 
 async function declareClass(name: string) {
@@ -34,6 +35,7 @@ async function main() {
     classHash: factoryClassHash,
     constructorCalldata: [multisigClassHash],
   });
+  await provider.waitForTransaction(deployed.transaction_hash);
 
   console.log("\nDeployed SupasafeRegistryFactory");
   console.log(`Address:    ${deployed.contract_address}`);
