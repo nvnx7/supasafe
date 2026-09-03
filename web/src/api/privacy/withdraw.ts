@@ -4,6 +4,7 @@ import { useStrk20InvokeTransaction } from "@starknetfoundation/starknet-start-r
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Signature } from "starknet";
 import { num } from "starknet";
+import { proposalQueryKeys } from "@/api/proposal/query-keys";
 import type { MultisigDetail } from "@/lib/multisig";
 import { createMultisigStrk20Proposal } from "./create-multisig-strk20-proposal";
 
@@ -83,9 +84,11 @@ export function useCreateMultisigWithdrawProposal() {
   const mutation = useMutation({
     mutationFn: createMultisigWithdrawProposal,
     onSuccess: async (proposal) => {
-      await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
       await queryClient.invalidateQueries({
-        queryKey: ["multisigProposal", proposal.hash],
+        queryKey: proposalQueryKeys.lists,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: proposalQueryKeys.detail(proposal.hash),
       });
     },
   });

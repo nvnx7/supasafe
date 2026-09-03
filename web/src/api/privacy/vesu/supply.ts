@@ -3,6 +3,7 @@
 import { Open } from "@starkware-libs/starknet-privacy-sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Signature } from "starknet";
+import { proposalQueryKeys } from "@/api/proposal/query-keys";
 import type { MultisigDetail } from "@/lib/multisig";
 import { createMultisigStrk20Proposal } from "../create-multisig-strk20-proposal";
 import { getVesuAnonymizerAddress, getVesuVaultByUnderlying } from "./config";
@@ -94,9 +95,11 @@ export function useCreateMultisigVesuSupplyProposal() {
   const mutation = useMutation({
     mutationFn: createMultisigVesuSupplyProposal,
     onSuccess: async (proposal) => {
-      await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
       await queryClient.invalidateQueries({
-        queryKey: ["multisigProposal", proposal.hash],
+        queryKey: proposalQueryKeys.lists,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: proposalQueryKeys.detail(proposal.hash),
       });
     },
   });

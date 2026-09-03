@@ -5,6 +5,7 @@ import { Open } from "@starkware-libs/starknet-privacy-sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Signature } from "starknet";
 import { transaction } from "starknet";
+import { proposalQueryKeys } from "@/api/proposal/query-keys";
 import { networkConfig } from "@/config/network";
 import type { MultisigDetail } from "@/lib/multisig";
 import { createMultisigStrk20Proposal } from "../create-multisig-strk20-proposal";
@@ -163,9 +164,11 @@ export function useCreateMultisigAvnuPrivateSwapProposal() {
   const mutation = useMutation({
     mutationFn: createMultisigAvnuPrivateSwapProposal,
     onSuccess: async (proposal) => {
-      await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
       await queryClient.invalidateQueries({
-        queryKey: ["multisigProposal", proposal.hash],
+        queryKey: proposalQueryKeys.lists,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: proposalQueryKeys.detail(proposal.hash),
       });
     },
   });

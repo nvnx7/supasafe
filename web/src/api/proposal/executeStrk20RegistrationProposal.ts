@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { executeMultisigStrk20Proposal } from "@/api/privacy";
 import type { MultisigProposal } from "@/lib/multisig-proposal-provider";
 import { multisigProposalProvider } from "./provider";
+import { proposalQueryKeys } from "./query-keys";
 
 export type ExecuteMultisigStrk20ProposalParams = {
   proposal: MultisigProposal;
@@ -29,9 +30,11 @@ export function useExecuteMultisigStrk20Proposal() {
       return { transaction_hash: transactionHash };
     },
     onSuccess: async (_transaction, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
       await queryClient.invalidateQueries({
-        queryKey: ["multisigProposal", variables.proposal.hash],
+        queryKey: proposalQueryKeys.lists,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: proposalQueryKeys.detail(variables.proposal.hash),
       });
     },
   });

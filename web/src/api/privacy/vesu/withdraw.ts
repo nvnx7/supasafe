@@ -4,6 +4,7 @@ import { useProvider } from "@starknetfoundation/starknet-start-react";
 import { Open } from "@starkware-libs/starknet-privacy-sdk";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ProviderInterface, Signature } from "starknet";
+import { proposalQueryKeys } from "@/api/proposal/query-keys";
 import type { MultisigDetail } from "@/lib/multisig";
 import { createMultisigStrk20Proposal } from "../create-multisig-strk20-proposal";
 import { getVesuAnonymizerAddress, getVesuVaultByVToken } from "./config";
@@ -107,9 +108,11 @@ export function useCreateMultisigVesuWithdrawProposal() {
     mutationFn: (params: CreateMultisigVesuWithdrawProposalParams) =>
       createMultisigVesuWithdrawProposal(provider, params),
     onSuccess: async (proposal) => {
-      await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
       await queryClient.invalidateQueries({
-        queryKey: ["multisigProposal", proposal.hash],
+        queryKey: proposalQueryKeys.lists,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: proposalQueryKeys.detail(proposal.hash),
       });
     },
   });

@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { MultisigProposalSignature } from "@/lib/multisig-proposal-provider";
 import { multisigProposalProvider } from "./provider";
+import { proposalQueryKeys } from "./query-keys";
 
 export type SaveProposalSignatureParams = {
   proposalHash: string;
@@ -21,10 +22,12 @@ export function useSaveProposalSignature() {
       return multisigProposalProvider.getProposal(proposalHash);
     },
     onSuccess: async (proposal) => {
-      await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
+      await queryClient.invalidateQueries({
+        queryKey: proposalQueryKeys.lists,
+      });
       if (proposal) {
         await queryClient.invalidateQueries({
-          queryKey: ["multisigProposal", proposal.hash],
+          queryKey: proposalQueryKeys.detail(proposal.hash),
         });
       }
     },

@@ -3,6 +3,7 @@
 import { useProvider } from "@starknetfoundation/starknet-start-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { multisigProposalProvider } from "@/api/proposal/provider";
+import { proposalQueryKeys } from "@/api/proposal/query-keys";
 import type { MultisigProposal } from "@/lib/multisig-proposal-provider";
 import { proveMultisigStrk20Proposal } from "../execute-multisig-strk20-proposal";
 import { submitAvnuPrivateSwap } from "./paymaster";
@@ -51,9 +52,11 @@ export function useExecuteMultisigAvnuPrivateSwapProposal() {
       return { transaction_hash: transactionHash };
     },
     onSuccess: async (_transaction, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
       await queryClient.invalidateQueries({
-        queryKey: ["multisigProposal", variables.proposal.hash],
+        queryKey: proposalQueryKeys.lists,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: proposalQueryKeys.detail(variables.proposal.hash),
       });
     },
   });

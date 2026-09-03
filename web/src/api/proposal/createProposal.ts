@@ -9,6 +9,7 @@ import type {
 } from "@/lib/multisig-proposal-provider";
 import { computeCallSetHash, type MultisigCall } from "@/lib/signing";
 import { multisigProposalProvider } from "./provider";
+import { proposalQueryKeys } from "./query-keys";
 
 export type CreateProposalParams = {
   multisigAddress: string;
@@ -62,7 +63,9 @@ export function useCreateProposal() {
       return proposal;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["multisigProposals"] });
+      await queryClient.invalidateQueries({
+        queryKey: proposalQueryKeys.lists,
+      });
     },
   });
 
