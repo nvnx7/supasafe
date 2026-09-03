@@ -74,10 +74,12 @@ const mainnetConfig: NetworkConfig = {
   chainId: constants.StarknetChainId.SN_MAIN,
   indexerUrl: indexerUrlMainnet,
   proving: { kind: "starkscan", apiKey: apiKeyStarkscanMainnet },
-  multisigClassHash: "",
+  multisigClassHash:
+    "0x5fd9ebaf5712f4f36f8d925e3a8dcac0aafda991cc7f752d9e21f3841faa494",
   privacyPoolAddress:
     "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
-  supasafeFactoryAddress: "",
+  supasafeFactoryAddress:
+    "0x397ea9acd2bbf727610c3fc6b46c933bee8859e4b02f2ea4fc4e77ce51796de",
 };
 
 export const networkConfigs: Record<NetworkType, NetworkConfig> = {
