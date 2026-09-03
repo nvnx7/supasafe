@@ -33,6 +33,7 @@
       "dependencies": {
         "@avnu/avnu-sdk": "^4.2.0",
         "@base-ui/react": "^1.7.0",
+        "@neondatabase/serverless": "^1.1.0",
         "@starknet-io/get-starknet-core": "^6.0.1",
         "@starknet-io/get-starknet-modal": "^6.0.1",
         "@starknet-io/get-starknet-wallet-standard": "^6.0.2",
@@ -247,6 +248,8 @@
     "@module-federation/runtime-core": ["@module-federation/runtime-core@0.12.0", "", { "dependencies": { "@module-federation/error-codes": "0.12.0", "@module-federation/sdk": "0.12.0" } }, "sha512-373zBM54196KHURs/O8lry9trCAM3PPidvsF4YdrtahNc8YaQynml0mE3zdZeBnqP6H0/4OpPqMMjACI80Ht8w=="],
 
     "@module-federation/sdk": ["@module-federation/sdk@0.12.0", "", {}, "sha512-vh3GcG90fxjbkMghK7iSWcMayi/y8U5DxI6mhEFuz11St3y1UgQO2TZYephL8nISFBld7DdiqAkimx+6Hb3hjQ=="],
+
+    "@neondatabase/serverless": ["@neondatabase/serverless@1.1.0", "", {}, "sha512-r3ZZhRjEcfEdKIZnoB1RusNgvHuaBRqfCzV4Gi+5A9yUX0S4HTws/ASWqt13wL4y4I+0rqsWGdA2w7EQXHi3+Q=="],
 
     "@next/env": ["@next/env@16.3.2", "", {}, "sha512-8k4YoG8cM7LWlkfzGNYCRBbFNlernLiMw4s0btVl+CmmWqn3VpYypA72/5Feb1UWdxe6tHqr5KHP4p4Y4m9luA=="],
 
