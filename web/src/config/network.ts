@@ -1,7 +1,7 @@
 import { type Chain, devnet } from "@starknetfoundation/starknet-start-chains";
 import { constants } from "starknet";
 import {
-  apiKeyStarkscan,
+  apiKeyStarkscanMainnet,
   indexerUrlMainnet,
   indexerUrlSepolia,
   network,
@@ -73,7 +73,7 @@ const mainnetConfig: NetworkConfig = {
   rpcUrl: rpcUrlMainnet,
   chainId: constants.StarknetChainId.SN_MAIN,
   indexerUrl: indexerUrlMainnet,
-  proving: { kind: "starkscan", apiKey: apiKeyStarkscan },
+  proving: { kind: "starkscan", apiKey: apiKeyStarkscanMainnet },
   multisigClassHash: "",
   privacyPoolAddress:
     "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
