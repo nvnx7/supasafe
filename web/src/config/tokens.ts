@@ -20,7 +20,25 @@ export const tokens: readonly Token[] = [
       "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     decimals: 18,
   },
+  {
+    name: "Vesu STRK",
+    symbol: "vSTRK",
+    address:
+      "0x04cd290592b3520ced3951d55e2c7f036832f6f9579b4dfe3a80f91ccda2ae8a",
+    decimals: 18,
+  },
+  {
+    name: "Vesu ETH",
+    symbol: "vETH",
+    address:
+      "0x06811b89c6cac2726b62e872c4ff776c4d6538a544dc9a9b6b7a14350f4170e4",
+    decimals: 18,
+  },
 ];
+
+export const swapTokens = tokens.filter(
+  (token) => token.symbol === "STRK" || token.symbol === "ETH",
+);
 
 export function getTokenByAddress(address: string | undefined) {
   if (!address) return undefined;
