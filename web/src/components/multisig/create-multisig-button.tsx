@@ -2,11 +2,16 @@
 
 import { useAccount } from "@starknetfoundation/starknet-start-react";
 import { PlusIcon } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { useSupasafeViewKeyRegistration } from "@/components/wallet/supasafe-view-key-registration-provider";
 
 export function CreateMultisigButton() {
   const { address } = useAccount();
+  const router = useRouter();
+  const { isCheckingRegistration, isRegistered, openRegistrationDialog } =
+    useSupasafeViewKeyRegistration();
 
   if (!address) {
     return (
@@ -17,9 +22,21 @@ export function CreateMultisigButton() {
     );
   }
 
+  function createMultisig() {
+    if (!isRegistered) {
+      openRegistrationDialog();
+      return;
+    }
+    router.push("/new");
+  }
+
   return (
-    <Button nativeButton={false} render={<Link href="/new" />}>
-      <PlusIcon data-icon="inline-start" />
+    <Button onClick={createMultisig} disabled={isCheckingRegistration}>
+      {isCheckingRegistration ? (
+        <Spinner data-icon="inline-start" />
+      ) : (
+        <PlusIcon data-icon="inline-start" />
+      )}
       New multisig
     </Button>
   );
