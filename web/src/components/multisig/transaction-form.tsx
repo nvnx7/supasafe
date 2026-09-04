@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRightIcon } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 
@@ -65,7 +66,7 @@ const KINDS: Record<
 
 const TOKEN_ITEMS = tokens.map((token) => ({
   value: token.address,
-  label: token.symbol,
+  label: `${token.symbol} - ${token.name}`,
 }));
 
 function isWalletTimeout(reason: unknown) {
@@ -216,16 +217,24 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit}>
-      <FieldGroup>
+    <form noValidate onSubmit={handleSubmit} className="w-full">
+      <FieldGroup className="gap-7">
         <Field>
-          <FieldLabel htmlFor={`${kind}-token`}>Token</FieldLabel>
+          <div className="flex items-center justify-between gap-4">
+            <FieldLabel htmlFor={`${kind}-token`}>Token</FieldLabel>
+            <span className="text-xs text-muted-foreground">
+              Private balance
+            </span>
+          </div>
           <Select
             items={TOKEN_ITEMS}
             onValueChange={(value) => setToken(value ?? "")}
             value={token}
           >
-            <SelectTrigger id={`${kind}-token`}>
+            <SelectTrigger
+              id={`${kind}-token`}
+              className="!h-14 w-full px-4 text-base"
+            >
               <SelectValue placeholder="Select a token" />
             </SelectTrigger>
             <SelectContent>
@@ -241,16 +250,34 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
         </Field>
 
         <Field data-invalid={submitted && amountError ? true : undefined}>
-          <FieldLabel htmlFor={`${kind}-amount`}>Amount</FieldLabel>
-          <Input
-            aria-invalid={submitted && amountError ? true : undefined}
-            autoComplete="off"
-            id={`${kind}-amount`}
-            inputMode="decimal"
-            onChange={(event) => setAmount(event.target.value)}
-            placeholder="0.0"
-            value={amount}
-          />
+          <div className="flex items-center justify-between gap-4">
+            <FieldLabel htmlFor={`${kind}-amount`}>Amount</FieldLabel>
+            <span className="text-xs text-muted-foreground">
+              Enter {selectedToken?.symbol ?? "token"} amount
+            </span>
+          </div>
+          <div className="relative">
+            <Input
+              aria-invalid={submitted && amountError ? true : undefined}
+              autoComplete="off"
+              className="h-14 px-4 pr-20 text-lg"
+              id={`${kind}-amount`}
+              inputMode="decimal"
+              onChange={(event) => setAmount(event.target.value)}
+              placeholder="0.0"
+              value={amount}
+            />
+            <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-medium text-muted-foreground">
+              {selectedToken?.symbol}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+            <span>
+              Estimated value:{" "}
+              <span className="text-foreground">≈ $0.00 USD</span>
+            </span>
+            <span>Price unavailable</span>
+          </div>
           {submitted && amountError ? (
             <FieldError>{amountError}</FieldError>
           ) : null}
@@ -264,6 +291,7 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
             <Input
               aria-invalid={submitted && recipientError ? true : undefined}
               autoComplete="off"
+              className="h-14 px-4"
               id={`${kind}-recipient`}
               onChange={(event) => setRecipient(event.target.value)}
               placeholder="0x..."
@@ -276,7 +304,14 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
           </Field>
         ) : null}
 
-        <FieldDescription>{hint}</FieldDescription>
+        <FieldDescription className="-mt-1">{hint}</FieldDescription>
+
+        <div className="rounded-lg border bg-muted/50 px-4 py-3 text-sm">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-muted-foreground">Estimated network fee</span>
+            <span>Calculated in wallet</span>
+          </div>
+        </div>
 
         {withdrawError || transferError ? (
           <FieldError>
@@ -295,6 +330,7 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
         ) : null}
 
         <Button
+          className="h-14 w-full text-base"
           disabled={
             isCreatingProposal ||
             (kind !== "deposit" && (!multisig || !owner || !viewingKey))
@@ -303,6 +339,9 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
         >
           {isCreatingProposal ? <Spinner data-icon="inline-start" /> : null}
           {isCreatingProposal ? "Preparing..." : cta}
+          {!isCreatingProposal ? (
+            <ArrowRightIcon data-icon="inline-end" />
+          ) : null}
         </Button>
       </FieldGroup>
     </form>

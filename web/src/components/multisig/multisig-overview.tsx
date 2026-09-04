@@ -11,7 +11,7 @@ import {
   TriangleAlertIcon,
   UsersRoundIcon,
 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useGetMultisig, useGetMultisigViewingPublicKey } from "@/api/multisig";
 import { useGetPublicViewKey } from "@/api/privacy";
 import { useGetOwnerProposals } from "@/api/proposal";
@@ -41,6 +41,7 @@ function getExplorerUrl(address: string) {
 
 export function MultisigOverview() {
   const { multisigAddress } = useParams<{ multisigAddress: string }>();
+  const router = useRouter();
   const { address: ownerAddress } = useAccount();
   const { data: multisig, isLoading } = useGetMultisig(multisigAddress);
   const { data: poolViewKey } = useGetPublicViewKey(multisigAddress);
@@ -64,7 +65,9 @@ export function MultisigOverview() {
   const isActive = poolViewKey !== null && poolViewKey !== undefined;
   const explorerUrl = getExplorerUrl(address);
 
-  function handleNewTransaction() {}
+  function handleNewTransaction() {
+    router.push(`/${multisigAddress}/tx`);
+  }
 
   async function copyAddress() {
     await navigator.clipboard.writeText(address);

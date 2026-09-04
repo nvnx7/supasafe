@@ -163,13 +163,7 @@ export function LendingForm() {
     }
   }
 
-  if (!vesuConfig.anonymizerAddress || vaults.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Vesu lending is not configured for this network.
-      </p>
-    );
-  }
+  const isConfigured = Boolean(vesuConfig.anonymizerAddress && vaults.length);
 
   const tokenLabel =
     mode === "supply"
@@ -185,7 +179,7 @@ export function LendingForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <FieldGroup>
+      <FieldGroup className="gap-7">
         <Tabs
           value={mode}
           onValueChange={(value) => setMode(value as LendingMode)}
@@ -205,8 +199,12 @@ export function LendingForm() {
             }))}
             value={underlyingToken}
             onValueChange={(value) => setUnderlyingToken(value ?? "")}
+            disabled={!isConfigured}
           >
-            <SelectTrigger id="vesu-vault">
+            <SelectTrigger
+              id="vesu-vault"
+              className="!h-14 w-full px-4 text-base"
+            >
               <SelectValue placeholder="Select a Vesu vault" />
             </SelectTrigger>
             <SelectContent>
@@ -229,6 +227,8 @@ export function LendingForm() {
             {mode === "supply" ? "Supply" : "Withdraw"} amount
           </FieldLabel>
           <Input
+            className="h-14 px-4 text-lg"
+            disabled={!isConfigured}
             id="vesu-amount"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
@@ -278,15 +278,18 @@ export function LendingForm() {
         ) : null}
 
         <Button
+          className="h-14 w-full text-base"
           type="submit"
-          disabled={isCreatingProposal || !canCreateProposal}
+          disabled={!isConfigured || isCreatingProposal || !canCreateProposal}
         >
           {isCreatingProposal ? <Spinner data-icon="inline-start" /> : null}
-          {isCreatingProposal
-            ? "Preparing..."
-            : mode === "supply"
-              ? "Propose supply"
-              : "Propose withdrawal"}
+          {!isConfigured
+            ? "Vesu lending is unavailable on this network"
+            : isCreatingProposal
+              ? "Preparing..."
+              : mode === "supply"
+                ? "Propose supply"
+                : "Propose withdrawal"}
         </Button>
       </FieldGroup>
     </form>

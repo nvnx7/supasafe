@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { AvnuSwapForm } from "@/components/multisig/avnu-swap-form";
 import { EkuboSwapForm } from "@/components/multisig/ekubo-swap-form";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { avnuConfig, ekuboConfig } from "@/config/dapp";
 
@@ -26,9 +27,9 @@ export function SwapPanel() {
 
   if (!isEkuboConfigured && !isAvnuConfigured) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Private swaps are not configured for this network yet.
-      </p>
+      <Button className="h-14 w-full text-base" disabled type="button">
+        Private swaps are unavailable on this network
+      </Button>
     );
   }
 

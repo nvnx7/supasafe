@@ -8,6 +8,7 @@ import {
   type LucideIcon,
   SendIcon,
 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 type MultisigAction = "deposit" | "transfer" | "withdraw" | "swap" | "invest";
@@ -24,9 +25,15 @@ const actions: {
   { id: "invest", label: "Invest", icon: ChartNoAxesCombinedIcon },
 ];
 
-function handleAction(_action: MultisigAction) {}
-
 export function MultisigActions() {
+  const { multisigAddress } = useParams<{ multisigAddress: string }>();
+  const router = useRouter();
+
+  function handleAction(action: MultisigAction) {
+    const tab = action === "invest" ? "lend" : action;
+    router.push(`/${multisigAddress}/tx?tab=${tab}`);
+  }
+
   return (
     <nav
       aria-label="Multisig actions"

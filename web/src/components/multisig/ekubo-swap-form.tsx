@@ -129,9 +129,9 @@ export function EkuboSwapForm() {
 
   if (!isConfigured) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Ekubo is not configured for this network yet.
-      </p>
+      <Button className="h-14 w-full text-base" disabled type="button">
+        Ekubo swaps are unavailable on this network
+      </Button>
     );
   }
 
@@ -159,7 +159,10 @@ export function EkuboSwapForm() {
           onValueChange={(value) => setTokenAddress(value ?? "")}
           value={token.address}
         >
-          <SelectTrigger aria-label="Sell token" className="w-full sm:w-36">
+          <SelectTrigger
+            aria-label="Sell token"
+            className="!h-10 w-full sm:w-36"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -203,7 +206,10 @@ export function EkuboSwapForm() {
           onValueChange={(value) => setToTokenAddress(value ?? "")}
           value={toToken.address}
         >
-          <SelectTrigger aria-label="Buy token" className="w-full sm:w-36">
+          <SelectTrigger
+            aria-label="Buy token"
+            className="!h-10 w-full sm:w-36"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -221,6 +227,7 @@ export function EkuboSwapForm() {
       ) : null}
 
       <Button
+        className="h-14 w-full text-base"
         disabled={!canCreateProposal || isPending}
         onClick={submit}
         type="button"
