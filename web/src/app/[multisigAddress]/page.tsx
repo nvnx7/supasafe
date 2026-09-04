@@ -4,7 +4,7 @@ import { MultisigOverview } from "@/components/multisig/multisig-overview";
 
 export default function MultisigDetailPage() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <MultisigOverview />
       <MultisigActions />
       <MultisigBalances />

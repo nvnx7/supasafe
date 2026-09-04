@@ -5,6 +5,9 @@ import {
   CheckCircle2Icon,
   Clock3Icon,
   CoinsIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  PlusIcon,
   TriangleAlertIcon,
   UsersRoundIcon,
 } from "lucide-react";
@@ -14,18 +17,27 @@ import { useGetPublicViewKey } from "@/api/privacy";
 import { useGetOwnerProposals } from "@/api/proposal";
 import { ActivateMultisigButton } from "@/components/multisig/activate-multisig-button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { network } from "@/config/env";
 import { tokens } from "@/config/tokens";
 import { truncateAddress } from "@/lib/multisig";
+
+const PLACEHOLDER_TOTAL_BALANCE = "$42,850.40";
+
+function getExplorerUrl(address: string) {
+  if (network === "mainnet") {
+    return `https://voyager.online/contract/${address}`;
+  }
+
+  if (network === "sepolia") {
+    return `https://sepolia.voyager.online/contract/${address}`;
+  }
+
+  return undefined;
+}
 
 export function MultisigOverview() {
   const { multisigAddress } = useParams<{ multisigAddress: string }>();
@@ -50,64 +62,100 @@ export function MultisigOverview() {
     factoryViewKey !== undefined &&
     poolViewKey === factoryViewKey;
   const isActive = poolViewKey !== null && poolViewKey !== undefined;
+  const explorerUrl = getExplorerUrl(address);
+
+  function handleNewTransaction() {}
+
+  async function copyAddress() {
+    await navigator.clipboard.writeText(address);
+  }
 
   return (
     <Card className="[--card-spacing:--spacing(6)]">
-      <CardHeader>
-        <CardTitle>Multisig account</CardTitle>
-        <CardDescription className="font-mono">
-          {truncateAddress(address, 10)}
-        </CardDescription>
-        <CardAction className="col-span-2 row-start-3 mt-3 justify-self-start sm:col-span-1 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:mt-0 sm:justify-self-end">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={isActive ? "secondary" : "outline"}>
+      <CardHeader className="flex flex-wrap items-center gap-2">
+        <CardTitle>Multisig</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground" title={address}>
+            {truncateAddress(address, 10)}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Copy multisig address"
+            title="Copy Multisig Address"
+            onClick={() => void copyAddress()}
+          >
+            <CopyIcon />
+          </Button>
+          {explorerUrl ? (
+            <Button
+              render={<a href={explorerUrl} target="_blank" rel="noreferrer" />}
+              variant="ghost"
+              size="icon-xs"
+              aria-label="View Multisig On Voyager"
+              title="View Multisig On Voyager"
+            >
+              <ExternalLinkIcon />
+            </Button>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap items-start justify-between gap-5 pb-8">
+          <div>
+            <p className="text-4xl font-bold tabular-nums sm:text-5xl">
+              {PLACEHOLDER_TOTAL_BALANCE}
+            </p>
+            <Badge
+              className="mt-3"
+              variant={isActive ? "secondary" : "outline"}
+            >
               {isActive ? <CheckCircle2Icon /> : <TriangleAlertIcon />}
-              {isActive ? "Private account active" : "Activation required"}
+              {isActive ? "Private Account Active" : "Activation Required"}
             </Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             {!isActive && poolViewKey === null ? (
               <ActivateMultisigButton multisig={multisig} />
             ) : null}
+            <Button type="button" size="lg" onClick={handleNewTransaction}>
+              <PlusIcon data-icon="inline-start" />
+              New Transaction
+            </Button>
           </div>
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <div className="pb-6">
-          <p className="text-sm text-muted-foreground">Private treasury</p>
-          <p className="font-heading text-3xl font-bold tracking-normal">
-            Shielded assets
-          </p>
         </div>
 
         <Separator />
 
-        <div className="grid gap-3 pt-6 md:grid-cols-3">
-          <div className="flex items-center gap-3 rounded-lg bg-muted p-4 ring-1 ring-border">
+        <div className="grid gap-4 pt-7 md:grid-cols-3">
+          <div className="flex items-center gap-3 rounded-lg border bg-secondary/70 p-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-card text-brand-secondary ring-1 ring-border">
               <CoinsIcon className="size-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Shielded balances</p>
-              <p className="font-semibold">{tokens.length} supported assets</p>
+              <p className="text-xs text-muted-foreground">Shielded Balances</p>
+              <p className="text-lg tabular-nums">{tokens.length} Assets</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg bg-muted p-4 ring-1 ring-border">
+          <div className="flex items-center gap-3 rounded-lg border bg-secondary/70 p-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-card text-brand-secondary ring-1 ring-border">
               <UsersRoundIcon className="size-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Multisig policy</p>
-              <p className="font-semibold">
-                {threshold} of {owners.length} required
+              <p className="text-xs text-muted-foreground">Multisig Policy</p>
+              <p className="text-lg tabular-nums">
+                {threshold} of {owners.length} Required
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg bg-muted p-4 ring-1 ring-border">
+          <div className="flex items-center gap-3 rounded-lg border bg-secondary/70 p-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-card text-brand-secondary ring-1 ring-border">
               <Clock3Icon className="size-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Pending approvals</p>
-              <p className="font-semibold">
+              <p className="text-xs text-muted-foreground">Pending Approvals</p>
+              <p className="text-lg tabular-nums">
                 {!ownerAddress
                   ? "Connect wallet"
                   : proposalsLoading

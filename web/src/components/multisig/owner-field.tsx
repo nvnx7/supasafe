@@ -54,7 +54,6 @@ export function OwnerField({
           autoComplete="off"
           readOnly={readOnly}
           aria-invalid={invalid || undefined}
-          className="font-mono"
         />
         <Button
           type="button"

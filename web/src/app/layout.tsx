@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-dvh flex-col" suppressHydrationWarning>
         <Providers>
           <SiteHeader />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+          <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8 lg:px-8">
             {children}
           </main>
           <SiteFooter />

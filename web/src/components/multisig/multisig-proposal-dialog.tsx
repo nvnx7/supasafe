@@ -207,7 +207,7 @@ export function MultisigProposalDialog({
             {proposal.display.amount && proposalToken ? (
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Amount</dt>
-                <dd className="font-mono">
+                <dd>
                   {formatAmount(
                     proposal.display.amount,
                     proposalToken.decimals,
@@ -220,7 +220,7 @@ export function MultisigProposalDialog({
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Recipient</dt>
                 <dd
-                  className="max-w-56 truncate font-mono"
+                  className="max-w-56 truncate"
                   title={proposal.display.recipient}
                 >
                   {truncateAddress(proposal.display.recipient, 10)}
@@ -230,7 +230,7 @@ export function MultisigProposalDialog({
             {proposal.display.minimumReceived && proposalOutputToken ? (
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Minimum received</dt>
-                <dd className="font-mono">
+                <dd>
                   {formatAmount(
                     proposal.display.minimumReceived,
                     proposalOutputToken.decimals,

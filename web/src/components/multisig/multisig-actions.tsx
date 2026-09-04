@@ -28,25 +28,29 @@ function handleAction(_action: MultisigAction) {}
 
 export function MultisigActions() {
   return (
-    <nav aria-label="Multisig actions" className="grid grid-cols-5 gap-3">
+    <nav
+      aria-label="Multisig actions"
+      className="flex flex-wrap justify-center gap-x-5 gap-y-5"
+    >
       {actions.map((action) => {
         const Icon = action.icon;
 
         return (
           <div
             key={action.id}
-            className="flex min-w-0 flex-col items-center gap-2"
+            className="flex w-14 flex-col items-center gap-2"
           >
             <Button
               type="button"
-              variant="outline"
-              size="icon-lg"
+              variant="default"
+              size="icon-xl"
+              className="w-full rounded-full"
               aria-label={action.label}
               onClick={() => handleAction(action.id)}
             >
               <Icon data-icon="inline-start" />
             </Button>
-            <span className="text-center text-xs font-medium">
+            <span className="text-center text-xs font-medium text-muted-foreground">
               {action.label}
             </span>
           </div>

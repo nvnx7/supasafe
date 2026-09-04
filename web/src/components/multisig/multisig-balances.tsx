@@ -2,7 +2,7 @@
 
 import { useAccount } from "@starknetfoundation/starknet-start-react";
 import { derivePublicKey } from "@starkware-libs/starknet-privacy-sdk/utils";
-import { RefreshCwIcon } from "lucide-react";
+import { KeyRoundIcon, RefreshCwIcon, ShieldCheckIcon } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import {
@@ -13,6 +13,7 @@ import {
   useGetMultisigStrk20Balances,
   useGetPublicViewKey,
 } from "@/api/privacy";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +26,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { tokens } from "@/config/tokens";
 import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
+import { cn } from "@/lib/utils";
 import { decryptViewKey } from "@/utils/encryption";
 
 function formatAmount(amount: bigint, decimals: number) {
@@ -72,11 +74,11 @@ export function MultisigBalances() {
   });
 
   return (
-    <Card>
+    <Card className="[--card-spacing:--spacing(5)]">
       <CardHeader className="border-b">
-        <CardTitle>Assets</CardTitle>
+        <CardTitle>Treasury assets</CardTitle>
         <CardDescription>
-          Private balances held by this multisig.
+          Private assets and positions held by this multisig.
         </CardDescription>
         <CardAction>
           <Button
@@ -95,28 +97,41 @@ export function MultisigBalances() {
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0">
         {poolViewKey.isLoading || balances.isLoading ? (
-          <div className="flex flex-col gap-3">
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-full" />
+          <div className="flex flex-col gap-3 px-(--card-spacing) py-5">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
           </div>
         ) : null}
         {poolViewKey.data === null ? (
-          <p className="text-sm text-muted-foreground">
-            Activate STRK20 to view private balances.
-          </p>
+          <div className="flex min-h-28 items-center gap-3 px-(--card-spacing) py-5 text-sm text-muted-foreground">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+              <ShieldCheckIcon className="size-5" />
+            </span>
+            <p>
+              Activate STRK20 to view this multisig&apos;s private balances.
+            </p>
+          </div>
         ) : null}
         {poolViewKey.data && !multisigViewingKey ? (
-          <p className="text-sm text-muted-foreground">
-            Your recovered Supasafe view key is required to view balances.
-          </p>
+          <div className="flex min-h-28 items-center gap-3 px-(--card-spacing) py-5 text-sm text-muted-foreground">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+              <KeyRoundIcon className="size-5" />
+            </span>
+            <p>
+              Connect an owner wallet with its recovered Supasafe view key to
+              reveal private balances.
+            </p>
+          </div>
         ) : null}
         {balances.error ? (
-          <p className="text-sm text-destructive">{balances.error.message}</p>
+          <p className="px-(--card-spacing) py-5 text-sm text-destructive">
+            {balances.error.message}
+          </p>
         ) : null}
         {balances.data ? (
-          <div className="flex flex-col">
+          <div className="divide-y">
             {tokens.map((token) => {
               const balance = balances.data.find(
                 (entry) => BigInt(entry.token) === BigInt(token.address),
@@ -124,21 +139,38 @@ export function MultisigBalances() {
               return (
                 <div
                   key={token.address}
-                  className="flex min-h-16 items-center justify-between gap-4 border-b py-3 last:border-0"
+                  className="flex min-h-22 items-center justify-between gap-4 px-(--card-spacing) py-4"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary font-medium text-secondary-foreground">
-                      {token.symbol.slice(0, 1)}
+                    <span
+                      className={cn(
+                        "flex size-11 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                        token.symbol.startsWith("v")
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-secondary text-secondary-foreground",
+                      )}
+                    >
+                      {token.symbol.startsWith("v")
+                        ? token.symbol.slice(0, 2)
+                        : token.symbol.slice(0, 1)}
                     </span>
                     <span className="min-w-0">
-                      <span className="block font-medium">{token.name}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium">{token.name}</span>
+                        <Badge variant="secondary">Shielded</Badge>
+                      </span>
                       <span className="block text-xs text-muted-foreground">
                         {token.symbol}
                       </span>
                     </span>
                   </div>
-                  <span className="font-mono text-base font-medium tabular-nums">
-                    {formatAmount(balance?.amount ?? 0n, token.decimals)}
+                  <span className="text-right">
+                    <span className="block text-base font-semibold tabular-nums">
+                      {formatAmount(balance?.amount ?? 0n, token.decimals)}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {token.symbol}
+                    </span>
                   </span>
                 </div>
               );

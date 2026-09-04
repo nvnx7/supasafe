@@ -264,7 +264,6 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
             <Input
               aria-invalid={submitted && recipientError ? true : undefined}
               autoComplete="off"
-              className="font-mono"
               id={`${kind}-recipient`}
               onChange={(event) => setRecipient(event.target.value)}
               placeholder="0x..."

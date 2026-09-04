@@ -4,8 +4,12 @@ import { WalletConnectButton } from "@/components/wallet/wallet-connect-button";
 export function SiteHeader() {
   return (
     <header className="border-b">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-6">
-        <Link href="/" className="font-semibold tracking-tight">
+      <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-4 px-6 lg:px-8">
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-heading font-semibold"
+        >
+          <span className="size-2 rounded-full bg-secondary" />
           supasafe
         </Link>
         <WalletConnectButton />

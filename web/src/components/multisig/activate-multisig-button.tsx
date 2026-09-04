@@ -125,6 +125,7 @@ export function ActivateMultisigButton({
     <div className="flex flex-col items-end gap-1">
       <Button
         type="button"
+        variant="secondary"
         disabled={disabled}
         onClick={() => void createProposal()}
       >

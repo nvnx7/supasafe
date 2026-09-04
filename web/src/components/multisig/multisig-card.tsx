@@ -15,7 +15,7 @@ export function MultisigCard({ multisig }: { multisig: MultisigSummary }) {
   return (
     <Card className="relative transition-colors hover:bg-muted/50">
       <CardHeader>
-        <CardTitle className="font-mono text-sm font-normal">
+        <CardTitle className="text-sm font-normal">
           <Link href={`/${address}`} className="after:absolute after:inset-0">
             {truncateAddress(address)}
           </Link>

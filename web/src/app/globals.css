@@ -59,31 +59,31 @@
   --brand-secondary: #059669;
   --brand-tertiary: #10b981;
   --brand-neutral: #697a72;
-  --background: #f8faf9;
-  --foreground: #062c22;
+  --background: #ebfef4;
+  --foreground: #0b1713;
   --card: #ffffff;
-  --card-foreground: #062c22;
+  --card-foreground: #0b1713;
   --popover: #ffffff;
-  --popover-foreground: #062c22;
+  --popover-foreground: #0b1713;
   --primary: #062c22;
   --primary-foreground: #ffffff;
   --secondary: #e8f3ee;
   --secondary-foreground: #062c22;
   --muted: #f0f4f2;
-  --muted-foreground: #697a72;
+  --muted-foreground: #4a5d54;
   --accent: #dcf5e9;
   --accent-foreground: #062c22;
   --success: #047857;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #dce5e1;
-  --input: #cbd8d2;
+  --border: #e2e8e5;
+  --input: #d6ded9;
   --ring: #059669;
   --chart-1: #062c22;
   --chart-2: #059669;
   --chart-3: #10b981;
   --chart-4: #697a72;
   --chart-5: #a8c8b9;
-  --radius: 0.35rem;
+  --radius: 0.6rem;
   --sidebar: #f0f4f2;
   --sidebar-foreground: #062c22;
   --sidebar-primary: #062c22;
@@ -150,6 +150,6 @@
   [data-slot="empty-title"],
   [data-slot="field-title"],
   [data-slot="toast-title"] {
-    @apply font-heading font-bold;
+    @apply font-heading font-semibold;
   }
 }

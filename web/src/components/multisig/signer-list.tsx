@@ -40,10 +40,10 @@ export function SignerList() {
                 Owner {index}
               </span>
               <div className="flex flex-col items-end gap-0.5 overflow-hidden">
-                <span className="truncate font-mono text-sm">
+                <span className="truncate text-sm">
                   {truncateAddress(owner.address, 10)}
                 </span>
-                <span className="truncate font-mono text-xs text-muted-foreground">
+                <span className="truncate text-xs text-muted-foreground">
                   key {truncateAddress(owner.publicKey, 6)}
                 </span>
               </div>
