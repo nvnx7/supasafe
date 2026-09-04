@@ -7,7 +7,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-4 px-6 lg:px-8">
         <Link
           href="/"
-          className="flex items-center gap-2 font-heading font-semibold"
+          className="flex items-center gap-2 font-heading text-lg font-bold text-primary"
         >
           <span className="size-2 rounded-full bg-secondary" />
           supasafe
