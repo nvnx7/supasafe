@@ -38,10 +38,9 @@ export async function getMultisigStrk20Balances({
     if (error instanceof Error && error.message.includes("not ready")) {
       throw error;
     }
-    throw new Error(
-      "Private balance indexer is unavailable. Check NEXT_PUBLIC_INDEXER_URL.",
-      { cause: error },
-    );
+    throw new Error("Private balance indexer is unavailable.", {
+      cause: error,
+    });
   }
 
   const transfers = createMultisigPrivateTransfers({
