@@ -30,10 +30,15 @@ function truncateAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+function isReadyWallet(wallet: { name: string }) {
+  return wallet.name.toLowerCase().includes("ready");
+}
+
 export function WalletConnectButton() {
   const { address, connector } = useAccount();
   const { connectors, connectAsync, isPending: isConnecting } = useConnect();
   const { disconnectAsync, isPending: isDisconnecting } = useDisconnect();
+  const readyConnector = connectors.find(isReadyWallet);
   const {
     hasViewKeyMismatch,
     isCheckingRegistration,
@@ -95,32 +100,17 @@ export function WalletConnectButton() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button disabled={isConnecting}>
-            <WalletIcon />
-            Connect wallet
-            <ChevronDownIcon />
-          </Button>
+    <Button
+      disabled={isConnecting || !readyConnector}
+      onClick={() => {
+        if (readyConnector) {
+          void connectAsync({ connector: readyConnector });
         }
-      />
-      <DropdownMenuContent align="end">
-        {connectors.length === 0 ? (
-          <DropdownMenuItem disabled>No wallet found</DropdownMenuItem>
-        ) : (
-          connectors.map((wallet) => (
-            <DropdownMenuItem
-              key={wallet.name}
-              disabled={isConnecting}
-              onClick={() => void connectAsync({ connector: wallet })}
-            >
-              <WalletIcon />
-              {wallet.name}
-            </DropdownMenuItem>
-          ))
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }}
+      title={readyConnector ? "Connect Ready" : "Ready Wallet Not Found"}
+    >
+      <WalletIcon />
+      {readyConnector ? "Connect Ready" : "Ready Wallet Not Found"}
+    </Button>
   );
 }

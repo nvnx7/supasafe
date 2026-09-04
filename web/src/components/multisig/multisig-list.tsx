@@ -1,18 +1,18 @@
 "use client";
 
 import { useAccount } from "@starknetfoundation/starknet-start-react";
-import { ShieldIcon, TriangleAlertIcon, WalletIcon } from "lucide-react";
+import { ShieldCheckIcon, TriangleAlertIcon, WalletIcon } from "lucide-react";
 import { useGetMultisigs } from "@/api/multisig";
-import { CreateMultisigButton } from "@/components/multisig/create-multisig-button";
 import { MultisigCard } from "@/components/multisig/multisig-card";
+import { Badge } from "@/components/ui/badge";
 import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function MultisigList() {
@@ -21,67 +21,119 @@ export function MultisigList() {
 
   if (!address) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <WalletIcon />
-          </EmptyMedia>
-          <EmptyTitle>No wallet connected</EmptyTitle>
-          <EmptyDescription>
-            Connect a wallet to see the multisigs it controls.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <DirectoryCard description="Private multisig accounts available to the connected wallet.">
+        <DirectoryState
+          icon={<WalletIcon />}
+          title="Connect Ready"
+          description="Connect your Ready wallet to view the multisigs it controls."
+        />
+      </DirectoryCard>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-3">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
-      </div>
+      <DirectoryCard description="Private multisig accounts available to the connected wallet.">
+        <div className="flex flex-col gap-3 p-6">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </DirectoryCard>
     );
   }
 
   if (error) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <TriangleAlertIcon />
-          </EmptyMedia>
-          <EmptyTitle>Could not load multisigs</EmptyTitle>
-          <EmptyDescription>{error.message}</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <DirectoryCard description="Private multisig accounts available to the connected wallet.">
+        <DirectoryState
+          icon={<TriangleAlertIcon />}
+          title="Could Not Load Multisigs"
+          description={error.message}
+          variant="error"
+        />
+      </DirectoryCard>
     );
   }
 
   if (multisigs.length === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <ShieldIcon />
-          </EmptyMedia>
-          <EmptyTitle>No multisigs yet</EmptyTitle>
-          <EmptyDescription>
-            Create a multisig to start holding funds behind a signing threshold.
-          </EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <CreateMultisigButton />
-        </EmptyContent>
-      </Empty>
+      <DirectoryCard description="Private multisig accounts available to the connected wallet.">
+        <DirectoryState
+          icon={<ShieldCheckIcon />}
+          title="No Multisigs Yet"
+          description="Create a multisig to start holding funds behind a signing threshold."
+        />
+      </DirectoryCard>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {multisigs.map((multisig) => (
-        <MultisigCard key={multisig.address} multisig={multisig} />
-      ))}
+    <DirectoryCard
+      count={multisigs.length}
+      description="Private multisig accounts available to the connected wallet."
+    >
+      <div className="divide-y divide-border">
+        {multisigs.map((multisig) => (
+          <MultisigCard key={multisig.address} multisig={multisig} />
+        ))}
+      </div>
+    </DirectoryCard>
+  );
+}
+
+function DirectoryCard({
+  children,
+  count,
+  description,
+}: {
+  children: React.ReactNode;
+  count?: number;
+  description: string;
+}) {
+  return (
+    <Card className="[--card-spacing:--spacing(0)]">
+      <CardHeader className="border-b px-6 pt-5 !pb-5">
+        <CardTitle className="text-lg">Multisig Accounts</CardTitle>
+        <CardDescription>{description}</CardDescription>
+        {count !== undefined ? (
+          <CardAction>
+            <Badge variant="secondary">
+              {count} {count === 1 ? "Account" : "Accounts"}
+            </Badge>
+          </CardAction>
+        ) : null}
+      </CardHeader>
+      <CardContent className="px-0">{children}</CardContent>
+    </Card>
+  );
+}
+
+function DirectoryState({
+  description,
+  icon,
+  title,
+  variant = "default",
+}: {
+  description: string;
+  icon: React.ReactNode;
+  title: string;
+  variant?: "default" | "error";
+}) {
+  return (
+    <div className="flex min-h-56 flex-col items-center justify-center px-6 py-10 text-center">
+      <span
+        className={
+          variant === "error"
+            ? "flex size-11 items-center justify-center rounded-full bg-destructive/10 text-destructive [&_svg]:size-5"
+            : "flex size-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground [&_svg]:size-5"
+        }
+      >
+        {icon}
+      </span>
+      <p className="mt-4 text-sm font-medium text-foreground">{title}</p>
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+        {description}
+      </p>
     </div>
   );
 }
