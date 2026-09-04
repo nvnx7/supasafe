@@ -53,21 +53,33 @@ export function WalletConnectButton() {
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button variant="outline" disabled={isDisconnecting}>
-              <WalletIcon />
-              {truncateAddress(address)}
+            <Button
+              variant="outline"
+              disabled={isDisconnecting}
+              className="h-9 border-border bg-card px-3 shadow-[0_1px_2px_rgb(6_44_34_/_0.04)] hover:bg-secondary"
+            >
+              <span className="size-2 rounded-full bg-brand-tertiary" />
+              <span className="text-foreground">
+                {truncateAddress(address)}
+              </span>
               <ChevronDownIcon />
             </Button>
           }
         />
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          className="min-w-56 rounded-lg border border-border bg-popover p-1.5 shadow-[0_12px_32px_-4px_rgb(6_44_34_/_0.08),0_2px_6px_rgb(6_44_34_/_0.03)]"
+        >
           <DropdownMenuGroup>
-            <DropdownMenuLabel>{connector?.name ?? "Wallet"}</DropdownMenuLabel>
+            <DropdownMenuLabel className="px-2.5 py-2">
+              {connector?.name ?? "Wallet"}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={
                 isSigning || isCheckingRegistration || isRegistrationInFlight
               }
+              className="px-2.5 py-2"
               onClick={openRegistrationDialog}
             >
               {isSigning || isCheckingRegistration ? (
@@ -80,14 +92,15 @@ export function WalletConnectButton() {
                 <KeyRoundIcon />
               )}
               {isSigning
-                ? "Preparing view key"
+                ? "Preparing View Key"
                 : isRegistered
-                  ? "Supasafe view key registered"
-                  : "Register Supasafe view key"}
+                  ? "Supasafe View Key Registered"
+                  : "Register Supasafe View Key"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
+              className="px-2.5 py-2"
               onClick={() => void disconnectAsync()}
             >
               <LogOutIcon />
@@ -99,18 +112,37 @@ export function WalletConnectButton() {
     );
   }
 
+  if (!readyConnector) {
+    return (
+      <Button
+        className="h-9 border-dashed bg-card/65 px-3.5 text-muted-foreground disabled:opacity-100"
+        disabled
+        title="Ready Wallet Required"
+        variant="outline"
+      >
+        <span className="flex size-5 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <WalletIcon className="size-3.5" />
+        </span>
+        Ready Wallet Required
+      </Button>
+    );
+  }
+
   return (
     <Button
-      disabled={isConnecting || !readyConnector}
-      onClick={() => {
-        if (readyConnector) {
-          void connectAsync({ connector: readyConnector });
-        }
-      }}
-      title={readyConnector ? "Connect Ready" : "Ready Wallet Not Found"}
+      className="h-9 px-3.5 shadow-[0_2px_6px_rgb(6_44_34_/_0.12)]"
+      disabled={isConnecting}
+      onClick={() => void connectAsync({ connector: readyConnector })}
+      title="Connect Ready"
     >
-      <WalletIcon />
-      {readyConnector ? "Connect Ready" : "Ready Wallet Not Found"}
+      <span className="flex size-5 items-center justify-center rounded-full bg-primary-foreground/15">
+        {isConnecting ? (
+          <Spinner className="size-3.5" />
+        ) : (
+          <WalletIcon className="size-3.5" />
+        )}
+      </span>
+      {isConnecting ? "Connecting Ready" : "Connect Ready"}
     </Button>
   );
 }
