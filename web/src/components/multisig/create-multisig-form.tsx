@@ -128,88 +128,120 @@ export function CreateMultisigForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <FieldGroup>
-        {owners.map((owner, index) => {
-          const query = pubkeyQueries[index];
-          const viewKeyQuery = ssViewPubkeyQueries[index];
-          const isSupasafeViewKeyRegistered =
-            viewKeyQuery?.data !== null && viewKeyQuery?.data !== undefined;
-          const supasafeViewKeyError =
-            owner && viewKeyQuery?.isFetched && viewKeyQuery.data === null
-              ? "This owner has not registered a Supasafe view key."
-              : undefined;
-          return (
-            <OwnerField
-              // biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
-              key={index}
-              index={index}
-              value={owner}
-              error={submitted ? errors.owners[index] : undefined}
-              removable={index > 0}
-              readOnly={index === 0}
-              hint={index === 0 ? "Connected wallet." : undefined}
-              resolveError={
-                query?.error instanceof Error ? query.error.message : undefined
-              }
-              supasafeViewKeyError={supasafeViewKeyError}
-              isSupasafeViewKeyRegistered={isSupasafeViewKeyRegistered}
-              onChange={(value) => updateCoOwner(index - 1, value)}
-              onRemove={() => removeCoOwner(index - 1)}
-            />
-          );
-        })}
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setCoOwners((current) => [...current, ""])}
-        >
-          <PlusIcon data-icon="inline-start" />
-          Add owner
-        </Button>
-
-        <Field data-invalid={submitted && errors.threshold ? true : undefined}>
-          <FieldLabel htmlFor="threshold">Threshold</FieldLabel>
-          <Select
-            items={thresholdItems}
-            value={String(effectiveThreshold)}
-            onValueChange={(value) => {
-              if (value !== null) setThreshold(Number(value));
-            }}
+      <FieldGroup className="gap-0">
+        <section>
+          <div className="mb-5">
+            <h2 className="font-heading text-base font-semibold">Owners</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Each owner must have a registered Supasafe view key.
+            </p>
+          </div>
+          <div className="flex flex-col gap-5">
+            {owners.map((owner, index) => {
+              const query = pubkeyQueries[index];
+              const viewKeyQuery = ssViewPubkeyQueries[index];
+              const isSupasafeViewKeyRegistered =
+                viewKeyQuery?.data !== null && viewKeyQuery?.data !== undefined;
+              const supasafeViewKeyError =
+                owner && viewKeyQuery?.isFetched && viewKeyQuery.data === null
+                  ? "This owner has not registered a Supasafe view key."
+                  : undefined;
+              return (
+                <OwnerField
+                  // biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
+                  key={index}
+                  index={index}
+                  value={owner}
+                  error={submitted ? errors.owners[index] : undefined}
+                  removable={index > 0}
+                  readOnly={index === 0}
+                  hint={index === 0 ? "Connected Wallet." : undefined}
+                  resolveError={
+                    query?.error instanceof Error
+                      ? query.error.message
+                      : undefined
+                  }
+                  supasafeViewKeyError={supasafeViewKeyError}
+                  isSupasafeViewKeyRegistered={isSupasafeViewKeyRegistered}
+                  onChange={(value) => updateCoOwner(index - 1, value)}
+                  onRemove={() => removeCoOwner(index - 1)}
+                />
+              );
+            })}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-5 h-10"
+            onClick={() => setCoOwners((current) => [...current, ""])}
           >
-            <SelectTrigger
-              id="threshold"
-              aria-invalid={submitted && errors.threshold ? true : undefined}
+            <PlusIcon data-icon="inline-start" />
+            Add Owner
+          </Button>
+        </section>
+
+        <section className="mt-7 border-t pt-7">
+          <div className="mb-5">
+            <h2 className="font-heading text-base font-semibold">
+              Signing Policy
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose how many owner approvals are required for each proposal.
+            </p>
+          </div>
+          <Field
+            data-invalid={submitted && errors.threshold ? true : undefined}
+          >
+            <FieldLabel htmlFor="threshold">Required Approvals</FieldLabel>
+            <Select
+              items={thresholdItems}
+              value={String(effectiveThreshold)}
+              onValueChange={(value) => {
+                if (value !== null) setThreshold(Number(value));
+              }}
             >
-              <SelectValue placeholder="Select a threshold" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {thresholdItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <FieldDescription>
-            Signatures required to authorize a transaction.
-          </FieldDescription>
-          {submitted && errors.threshold ? (
-            <FieldError>{errors.threshold}</FieldError>
+              <SelectTrigger
+                id="threshold"
+                className="!h-12 w-full px-4"
+                aria-invalid={submitted && errors.threshold ? true : undefined}
+              >
+                <SelectValue placeholder="Select Required Approvals" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {thresholdItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              Signatures required to authorize a transaction.
+            </FieldDescription>
+            {submitted && errors.threshold ? (
+              <FieldError>{errors.threshold}</FieldError>
+            ) : null}
+          </Field>
+        </section>
+
+        <section className="mt-7 border-t pt-7">
+          {!address ? (
+            <FieldError>Connect a wallet to create a multisig.</FieldError>
           ) : null}
-        </Field>
-
-        {!address ? (
-          <FieldError>Connect a wallet to create a multisig.</FieldError>
-        ) : null}
-        {error ? <FieldError>{error.message}</FieldError> : null}
-
-        <Button type="submit" disabled={isPending || !isAllReady}>
-          {isPending ? <Spinner data-icon="inline-start" /> : null}
-          {isPending ? "Creating…" : "Create Multisig"}
-        </Button>
+          {error ? (
+            <FieldError className="mb-4">{error.message}</FieldError>
+          ) : null}
+          <Button
+            className="h-12 w-full text-base"
+            type="submit"
+            disabled={isPending || !isAllReady}
+          >
+            {isPending ? <Spinner data-icon="inline-start" /> : null}
+            {isPending ? "Creating…" : "Create Multisig"}
+          </Button>
+        </section>
       </FieldGroup>
     </form>
   );

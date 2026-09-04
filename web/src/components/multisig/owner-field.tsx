@@ -46,6 +46,7 @@ export function OwnerField({
       <FieldLabel htmlFor={id}>Owner {index + 1}</FieldLabel>
       <div className="flex items-center gap-2">
         <Input
+          className="h-12 px-4"
           id={id}
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -58,7 +59,7 @@ export function OwnerField({
         <Button
           type="button"
           variant="ghost"
-          size="icon"
+          size="icon-lg"
           onClick={onRemove}
           disabled={!removable}
           aria-label={`Remove owner ${index + 1}`}
@@ -70,7 +71,7 @@ export function OwnerField({
       {isSupasafeViewKeyRegistered ? (
         <FieldDescription className="flex items-center gap-1.5 text-success">
           <CircleCheckIcon className="size-4" aria-hidden="true" />
-          Supasafe view key registered.
+          Supasafe View Key Registered
         </FieldDescription>
       ) : hint ? (
         <FieldDescription>{hint}</FieldDescription>
