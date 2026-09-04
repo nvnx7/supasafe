@@ -203,9 +203,9 @@ export function MultisigProposalDialog({
           </DialogDescription>
         </DialogHeader>
         {proposal ? (
-          <dl className="flex flex-col gap-2 text-sm">
+          <dl className="divide-y px-6 py-3 text-sm">
             {proposal.display.amount && proposalToken ? (
-              <div className="flex justify-between gap-4">
+              <div className="flex items-center justify-between gap-4 py-3">
                 <dt className="text-muted-foreground">Amount</dt>
                 <dd>
                   {formatAmount(
@@ -217,7 +217,7 @@ export function MultisigProposalDialog({
               </div>
             ) : null}
             {proposal.display.recipient ? (
-              <div className="flex justify-between gap-4">
+              <div className="flex items-center justify-between gap-4 py-3">
                 <dt className="text-muted-foreground">Recipient</dt>
                 <dd
                   className="max-w-56 truncate"
@@ -228,7 +228,7 @@ export function MultisigProposalDialog({
               </div>
             ) : null}
             {proposal.display.minimumReceived && proposalOutputToken ? (
-              <div className="flex justify-between gap-4">
+              <div className="flex items-center justify-between gap-4 py-3">
                 <dt className="text-muted-foreground">Minimum received</dt>
                 <dd>
                   {formatAmount(
@@ -239,17 +239,17 @@ export function MultisigProposalDialog({
                 </dd>
               </div>
             ) : null}
-            <div className="flex justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 py-3">
               <dt className="text-muted-foreground">Approvals</dt>
               <dd>
                 {proposal.signatures.length} / {proposal.threshold}
               </dd>
             </div>
-            <div className="flex justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 py-3">
               <dt className="text-muted-foreground">Status</dt>
               <dd className="capitalize">{proposal.status}</dd>
             </div>
-            <div className="flex justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 py-3">
               <dt className="text-muted-foreground">Created</dt>
               <dd title={new Date(proposal.createdAt).toISOString()}>
                 {formatCreatedAt(proposal.createdAt)} UTC
@@ -258,7 +258,9 @@ export function MultisigProposalDialog({
           </dl>
         ) : null}
         {error ? (
-          <p className="text-sm text-destructive">{error.message}</p>
+          <p className="mx-6 mb-5 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            {error.message}
+          </p>
         ) : null}
         <DialogFooter>
           {!hasSigned && proposal?.status === "pending" ? (
