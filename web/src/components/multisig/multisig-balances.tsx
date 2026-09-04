@@ -73,9 +73,11 @@ export function MultisigBalances() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Private balances</CardTitle>
-        <CardDescription>STRK20 notes held by this multisig.</CardDescription>
+      <CardHeader className="border-b">
+        <CardTitle>Assets</CardTitle>
+        <CardDescription>
+          Private balances held by this multisig.
+        </CardDescription>
         <CardAction>
           <Button
             type="button"
@@ -87,6 +89,7 @@ export function MultisigBalances() {
             disabled={balances.isFetching || !multisigViewingKey}
           >
             <RefreshCwIcon
+              data-icon="inline-start"
               className={balances.isFetching ? "animate-spin" : undefined}
             />
           </Button>
@@ -113,7 +116,7 @@ export function MultisigBalances() {
           <p className="text-sm text-destructive">{balances.error.message}</p>
         ) : null}
         {balances.data ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col">
             {tokens.map((token) => {
               const balance = balances.data.find(
                 (entry) => BigInt(entry.token) === BigInt(token.address),
@@ -121,10 +124,20 @@ export function MultisigBalances() {
               return (
                 <div
                   key={token.address}
-                  className="flex items-center justify-between gap-4 text-sm"
+                  className="flex min-h-16 items-center justify-between gap-4 border-b py-3 last:border-0"
                 >
-                  <span className="text-muted-foreground">{token.symbol}</span>
-                  <span className="font-mono">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary font-medium text-secondary-foreground">
+                      {token.symbol.slice(0, 1)}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-medium">{token.name}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {token.symbol}
+                      </span>
+                    </span>
+                  </div>
+                  <span className="font-mono text-base font-medium tabular-nums">
                     {formatAmount(balance?.amount ?? 0n, token.decimals)}
                   </span>
                 </div>
