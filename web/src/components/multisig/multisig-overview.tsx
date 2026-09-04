@@ -69,6 +69,10 @@ export function MultisigOverview() {
     router.push(`/${multisigAddress}/tx`);
   }
 
+  function handleViewProposals() {
+    router.push(`/${multisigAddress}/proposals`);
+  }
+
   async function copyAddress() {
     await navigator.clipboard.writeText(address);
   }
@@ -122,6 +126,14 @@ export function MultisigOverview() {
             {!isActive && poolViewKey === null ? (
               <ActivateMultisigButton multisig={multisig} />
             ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={handleViewProposals}
+            >
+              View proposals
+            </Button>
             <Button type="button" size="lg" onClick={handleNewTransaction}>
               <PlusIcon data-icon="inline-start" />
               New Transaction
