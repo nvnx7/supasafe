@@ -23,7 +23,9 @@ export async function getMultisigs(
   let continuationToken: string | undefined;
   do {
     const page = await provider.getEvents({
-      from_block: { block_number: 0 },
+      from_block: {
+        block_number: networkConfig.supasafeFactoryDeploymentBlock,
+      },
       to_block: "latest",
       address: networkConfig.supasafeFactoryAddress,
       keys: [[MULTISIG_OWNER_UPDATED_KEY], [num.toHex(target)]],
