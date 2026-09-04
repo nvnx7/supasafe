@@ -32,6 +32,7 @@ export type NetworkConfig = {
   multisigClassHash: string;
   privacyPoolAddress: string;
   supasafeFactoryAddress: string;
+  supasafeFactoryDeploymentBlock: number;
 };
 
 export const devnetChain: Chain = {
@@ -53,6 +54,7 @@ const devnetConfig: NetworkConfig = {
   privacyPoolAddress: "",
   supasafeFactoryAddress:
     "0x2ee7434e31a72cb405693dd712d6b564ebb9792e3af4a84dda17076d6d3a230",
+  supasafeFactoryDeploymentBlock: 0,
 };
 
 const sepoliaConfig: NetworkConfig = {
@@ -66,6 +68,7 @@ const sepoliaConfig: NetworkConfig = {
     "0x5fd9ebaf5712f4f36f8d925e3a8dcac0aafda991cc7f752d9e21f3841faa494",
   supasafeFactoryAddress:
     "0x25a2f45ee1b147828cb0d259b3dd7dd3b6a0cb3c8c8b6fcfbdd23230305f26d",
+  supasafeFactoryDeploymentBlock: 14194333,
 };
 
 const mainnetConfig: NetworkConfig = {
@@ -79,6 +82,7 @@ const mainnetConfig: NetworkConfig = {
     "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
   supasafeFactoryAddress:
     "0x397ea9acd2bbf727610c3fc6b46c933bee8859e4b02f2ea4fc4e77ce51796de",
+  supasafeFactoryDeploymentBlock: 14_297_421,
 };
 
 export const networkConfigs: Record<NetworkType, NetworkConfig> = {
