@@ -9,6 +9,7 @@ import {
   useCreateMultisigSwapProposal,
   useEkuboSwapQuote,
 } from "@/api/privacy/ekubo";
+import { TokenLogo } from "@/components/token-logo";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ import {
 const TOKEN_ITEMS = tokens.map((token) => ({
   label: token.symbol,
   value: token.address,
+  token,
 }));
 
 function getToken(address: string) {
@@ -163,11 +165,13 @@ export function EkuboSwapForm() {
             aria-label="Sell token"
             className="!h-10 w-full sm:w-36"
           >
+            <TokenLogo token={token} className="size-5" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {TOKEN_ITEMS.map((item) => (
               <SelectItem key={item.value} value={item.value}>
+                <TokenLogo token={item.token} className="size-5" />
                 {item.label}
               </SelectItem>
             ))}
@@ -210,11 +214,13 @@ export function EkuboSwapForm() {
             aria-label="Buy token"
             className="!h-10 w-full sm:w-36"
           >
+            <TokenLogo token={toToken} className="size-5" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {TOKEN_ITEMS.map((item) => (
               <SelectItem key={item.value} value={item.value}>
+                <TokenLogo token={item.token} className="size-5" />
                 {item.label}
               </SelectItem>
             ))}

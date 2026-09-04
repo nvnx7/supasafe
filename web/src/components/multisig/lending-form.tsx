@@ -7,6 +7,7 @@ import {
   useCreateMultisigVesuWithdrawProposal,
   useVesuPreviewRedeem,
 } from "@/api/privacy/vesu";
+import { TokenLogo } from "@/components/token-logo";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -93,6 +94,7 @@ export function LendingForm() {
   const selectedVault = vaults.find(
     (vault) => BigInt(vault.underlyingToken) === BigInt(underlyingToken || 0),
   );
+  const selectedUnderlyingToken = getTokenByAddress(underlyingToken);
   const decimals = mode === "supply" ? selectedVault?.underlyingDecimals : 18;
   const amountError = isValidAmount(amount)
     ? undefined
@@ -205,18 +207,28 @@ export function LendingForm() {
               id="vesu-vault"
               className="!h-14 w-full px-4 text-base"
             >
+              {selectedUnderlyingToken ? (
+                <TokenLogo token={selectedUnderlyingToken} className="size-6" />
+              ) : null}
               <SelectValue placeholder="Select a Vesu vault" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {vaults.map((vault) => (
-                  <SelectItem
-                    key={vault.underlyingToken}
-                    value={vault.underlyingToken}
-                  >
-                    {vault.underlyingSymbol} / {vault.vTokenSymbol}
-                  </SelectItem>
-                ))}
+                {vaults.map((vault) => {
+                  const underlying = getTokenByAddress(vault.underlyingToken);
+
+                  return (
+                    <SelectItem
+                      key={vault.underlyingToken}
+                      value={vault.underlyingToken}
+                    >
+                      {underlying ? (
+                        <TokenLogo token={underlying} className="size-5" />
+                      ) : null}
+                      {vault.underlyingSymbol} / {vault.vTokenSymbol}
+                    </SelectItem>
+                  );
+                })}
               </SelectGroup>
             </SelectContent>
           </Select>

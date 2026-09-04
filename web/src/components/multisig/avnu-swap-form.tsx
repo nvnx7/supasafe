@@ -8,6 +8,7 @@ import {
   useAvnuPrivateSwapQuote,
   useCreateMultisigAvnuPrivateSwapProposal,
 } from "@/api/privacy/avnu";
+import { TokenLogo } from "@/components/token-logo";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import {
 const TOKEN_ITEMS = tokens.map((token) => ({
   label: token.symbol,
   value: token.address,
+  token,
 }));
 
 function getToken(address: string) {
@@ -166,11 +168,13 @@ export function AvnuSwapForm() {
             aria-label="Sell token"
             className="!h-10 w-full sm:w-36"
           >
+            <TokenLogo token={token} className="size-5" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {TOKEN_ITEMS.map((item) => (
               <SelectItem key={item.value} value={item.value}>
+                <TokenLogo token={item.token} className="size-5" />
                 {item.label}
               </SelectItem>
             ))}
@@ -213,11 +217,13 @@ export function AvnuSwapForm() {
             aria-label="Buy token"
             className="!h-10 w-full sm:w-36"
           >
+            <TokenLogo token={toToken} className="size-5" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {TOKEN_ITEMS.map((item) => (
               <SelectItem key={item.value} value={item.value}>
+                <TokenLogo token={item.token} className="size-5" />
                 {item.label}
               </SelectItem>
             ))}
@@ -234,11 +240,13 @@ export function AvnuSwapForm() {
             value={feeToken.address}
           >
             <SelectTrigger id="avnu-fee-token">
+              <TokenLogo token={feeToken} className="size-5" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {TOKEN_ITEMS.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
+                  <TokenLogo token={item.token} className="size-5" />
                   {item.label}
                 </SelectItem>
               ))}

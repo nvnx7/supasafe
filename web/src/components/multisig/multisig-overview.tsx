@@ -132,7 +132,7 @@ export function MultisigOverview() {
               size="lg"
               onClick={handleViewProposals}
             >
-              View proposals
+              View Proposals
             </Button>
             <Button type="button" size="lg" onClick={handleNewTransaction}>
               <PlusIcon data-icon="inline-start" />
@@ -175,7 +175,7 @@ export function MultisigOverview() {
                   ? "Connect wallet"
                   : proposalsLoading
                     ? "Loading"
-                    : `${proposals?.length ?? 0} open`}
+                    : `${proposals?.length ?? 0} Open`}
               </p>
             </div>
           </div>

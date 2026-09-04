@@ -9,6 +9,7 @@ import {
   useCreateMultisigWithdrawProposal,
   useDepositToMultisig,
 } from "@/api/privacy";
+import { TokenLogo } from "@/components/token-logo";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -67,6 +68,7 @@ const KINDS: Record<
 const TOKEN_ITEMS = tokens.map((token) => ({
   value: token.address,
   label: `${token.symbol} - ${token.name}`,
+  token,
 }));
 
 function isWalletTimeout(reason: unknown) {
@@ -235,12 +237,16 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
               id={`${kind}-token`}
               className="!h-14 w-full px-4 text-base"
             >
+              {selectedToken ? (
+                <TokenLogo token={selectedToken} className="size-6" />
+              ) : null}
               <SelectValue placeholder="Select a token" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 {TOKEN_ITEMS.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
+                    <TokenLogo token={item.token} className="size-5" />
                     {item.label}
                   </SelectItem>
                 ))}

@@ -13,7 +13,7 @@ import {
   useGetMultisigStrk20Balances,
   useGetPublicViewKey,
 } from "@/api/privacy";
-import { Badge } from "@/components/ui/badge";
+import { TokenLogo } from "@/components/token-logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,7 +26,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { tokens } from "@/config/tokens";
 import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
-import { cn } from "@/lib/utils";
 import { decryptViewKey } from "@/utils/encryption";
 
 function formatAmount(amount: bigint, decimals: number) {
@@ -76,7 +75,7 @@ export function MultisigBalances() {
   return (
     <Card className="[--card-spacing:--spacing(5)]">
       <CardHeader className="border-b">
-        <CardTitle>Treasury assets</CardTitle>
+        <CardTitle>Shielded Token Balances</CardTitle>
         <CardDescription>
           Private assets and positions held by this multisig.
         </CardDescription>
@@ -142,23 +141,9 @@ export function MultisigBalances() {
                   className="flex min-h-22 items-center justify-between gap-4 px-(--card-spacing) py-4"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className={cn(
-                        "flex size-11 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                        token.symbol.startsWith("v")
-                          ? "bg-accent text-accent-foreground"
-                          : "bg-secondary text-secondary-foreground",
-                      )}
-                    >
-                      {token.symbol.startsWith("v")
-                        ? token.symbol.slice(0, 2)
-                        : token.symbol.slice(0, 1)}
-                    </span>
+                    <TokenLogo token={token} className="size-11" />
                     <span className="min-w-0">
-                      <span className="flex items-center gap-2">
-                        <span className="font-medium">{token.name}</span>
-                        <Badge variant="secondary">Shielded</Badge>
-                      </span>
+                      <span className="font-medium">{token.name}</span>
                       <span className="block text-xs text-muted-foreground">
                         {token.symbol}
                       </span>
