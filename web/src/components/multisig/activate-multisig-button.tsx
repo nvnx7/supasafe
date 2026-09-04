@@ -165,6 +165,7 @@ export function ActivateMultisigDialog({
         title: "STRK20 activation proposed",
         description: "The remaining owners must approve before activation.",
       });
+      onOpenChange(false);
     } catch (reason) {
       const nextError =
         reason instanceof Error

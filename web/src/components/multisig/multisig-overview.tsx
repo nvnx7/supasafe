@@ -2,6 +2,7 @@
 
 import { useAccount } from "@starknetfoundation/starknet-start-react";
 import {
+  ArrowRightIcon,
   CheckCircle2Icon,
   Clock3Icon,
   CoinsIcon,
@@ -63,6 +64,11 @@ export function MultisigOverview() {
     factoryViewKey !== undefined &&
     poolViewKey === factoryViewKey;
   const isActive = poolViewKey !== null && poolViewKey !== undefined;
+  const hasActivationProposal = proposals?.some(
+    (proposal) => proposal.display.kind === "strk20-registration",
+  );
+  const openProposalCount = proposals?.length ?? 0;
+  const hasPendingApprovals = openProposalCount > 0;
   const explorerUrl = getExplorerUrl(address);
 
   function handleNewTransaction() {
@@ -124,7 +130,11 @@ export function MultisigOverview() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {!isActive && poolViewKey === null ? (
-              <ActivateMultisigButton multisig={multisig} />
+              hasActivationProposal ? (
+                <Badge variant="outline">Activation Proposal Pending</Badge>
+              ) : (
+                <ActivateMultisigButton multisig={multisig} />
+              )
             ) : null}
             <Button
               type="button"
@@ -164,7 +174,16 @@ export function MultisigOverview() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 rounded-lg border bg-secondary/70 p-4">
+          <button
+            type="button"
+            className={`group flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ${
+              hasPendingApprovals
+                ? "border-brand-tertiary/50 bg-brand-tertiary/10 hover:bg-brand-tertiary/15"
+                : "bg-secondary/70 hover:bg-secondary"
+            }`}
+            onClick={handleViewProposals}
+            aria-label="View Multisig Proposals"
+          >
             <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-card text-brand-secondary ring-1 ring-border">
               <Clock3Icon className="size-5" />
             </div>
@@ -175,10 +194,13 @@ export function MultisigOverview() {
                   ? "Connect wallet"
                   : proposalsLoading
                     ? "Loading"
-                    : `${proposals?.length ?? 0} Open`}
+                    : hasPendingApprovals
+                      ? `${openProposalCount} Awaiting`
+                      : "No Pending Approvals"}
               </p>
             </div>
-          </div>
+            <ArrowRightIcon className="ml-auto size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          </button>
         </div>
 
         {poolViewKey && factoryViewKey !== undefined && !keyMatches ? (
