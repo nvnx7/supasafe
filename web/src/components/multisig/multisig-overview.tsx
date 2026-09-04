@@ -69,7 +69,7 @@ export function MultisigOverview() {
                 </span>
                 {keyMatches ? (
                   <CheckCircle2Icon
-                    className="size-4 shrink-0 text-emerald-600"
+                    className="size-4 shrink-0 text-success"
                     aria-label="Matches Supasafe view key"
                   />
                 ) : factoryViewKey !== undefined ? (

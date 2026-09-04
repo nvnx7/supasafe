@@ -69,7 +69,7 @@ export function OwnerField({
       </div>
 
       {isSupasafeViewKeyRegistered ? (
-        <FieldDescription className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+        <FieldDescription className="flex items-center gap-1.5 text-success">
           <CircleCheckIcon className="size-4" aria-hidden="true" />
           Supasafe view key registered.
         </FieldDescription>
