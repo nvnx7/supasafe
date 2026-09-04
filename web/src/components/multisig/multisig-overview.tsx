@@ -160,7 +160,9 @@ export function MultisigOverview() {
             </div>
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Shielded Balances</p>
-              <p className="text-lg tabular-nums">{tokens.length} Assets</p>
+              <p className="text-md font-semibold tabular-nums">
+                {tokens.length} Assets
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-lg border bg-secondary/70 p-4">
@@ -169,7 +171,7 @@ export function MultisigOverview() {
             </div>
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Multisig Policy</p>
-              <p className="text-lg tabular-nums">
+              <p className="text-md font-semibold tabular-nums">
                 {threshold} of {owners.length} Required
               </p>
             </div>
@@ -189,7 +191,7 @@ export function MultisigOverview() {
             </div>
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Pending Approvals</p>
-              <p className="text-lg tabular-nums">
+              <p className="text-md font-semibold tabular-nums">
                 {!ownerAddress
                   ? "Connect wallet"
                   : proposalsLoading
