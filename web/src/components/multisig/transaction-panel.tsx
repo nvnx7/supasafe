@@ -4,7 +4,6 @@ import {
   ArrowLeftIcon,
   ArrowLeftRightIcon,
   ChevronRightIcon,
-  SparklesIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +12,7 @@ import { useEffect, useState } from "react";
 import { useGetMultisig } from "@/api/multisig";
 import { AvnuSwapForm } from "@/components/multisig/avnu-swap-form";
 import { EkuboSwapForm } from "@/components/multisig/ekubo-swap-form";
+import { EndurStakingForm } from "@/components/multisig/endur-staking-form";
 import { LendingForm } from "@/components/multisig/lending-form";
 import { TransactionForm } from "@/components/multisig/transaction-form";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,7 @@ const DAPPS: {
   {
     value: "endur",
     label: "Endur",
-    description: "Coming Soon",
+    description: "Private Staking",
     logo: "/logo-endur.png",
   },
 ];
@@ -105,8 +105,8 @@ function getDappCopy(dapp: Dapp) {
       };
     case "endur":
       return {
-        title: "Endur",
-        description: "Private Endur strategies will be available here soon.",
+        title: "Private Staking",
+        description: "Stake STRK or instantly exit xSTRK through Endur.",
       };
   }
 }
@@ -259,17 +259,7 @@ export function TransactionPanel() {
             ) : activeDapp === "vesu" ? (
               <LendingForm />
             ) : (
-              <div className="flex min-h-76 flex-col items-center justify-center gap-4 text-center">
-                <span className="flex size-12 items-center justify-center rounded-md bg-secondary text-brand-secondary">
-                  <SparklesIcon className="size-5" />
-                </span>
-                <div>
-                  <p className="text-base font-medium">Coming Soon</p>
-                  <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-                    Private Endur strategies are being prepared for Supasafe.
-                  </p>
-                </div>
-              </div>
+              <EndurStakingForm />
             )}
           </CardContent>
         </Card>
