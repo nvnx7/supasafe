@@ -27,6 +27,15 @@ export const tokens: readonly Token[] = [
     logo: "/token-eth.png",
   },
   {
+    name: "Staked STRK",
+    symbol: "xSTRK",
+    address:
+      "0x028d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a",
+    decimals: 18,
+    coingeckoPriceId: "starknet",
+    logo: "/token-xstrk.png",
+  },
+  {
     name: "Vesu STRK",
     symbol: "vSTRK",
     address:

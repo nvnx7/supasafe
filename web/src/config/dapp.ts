@@ -31,6 +31,12 @@ export type AvnuConfig = {
   paymasterBaseUrl: string;
 };
 
+export type EndurConfig = {
+  anonymizerAddress: string;
+  strkTokenAddress: string;
+  xStrkTokenAddress: string;
+};
+
 export const ekuboDevnetConfig: EkuboConfig = {
   executorAddress: "",
   coreAddress: "",
@@ -113,6 +119,27 @@ export const avnuMainnetConfig: AvnuConfig = {
   paymasterBaseUrl: "https://starknet.paymaster.avnu.fi",
 };
 
+export const endurDevnetConfig: EndurConfig = {
+  anonymizerAddress: "",
+  strkTokenAddress: "",
+  xStrkTokenAddress: "",
+};
+
+export const endurSepoliaConfig: EndurConfig = {
+  anonymizerAddress: "",
+  strkTokenAddress: "",
+  xStrkTokenAddress: "",
+};
+
+export const endurMainnetConfig: EndurConfig = {
+  anonymizerAddress:
+    "0x030dee638065962eb3642ca54aa48e9e2cd98536bc90b64b99bb306c1db30698",
+  strkTokenAddress:
+    "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d",
+  xStrkTokenAddress:
+    "0x028d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a",
+};
+
 const ekuboConfigs: Record<Network, EkuboConfig> = {
   devnet: ekuboDevnetConfig,
   sepolia: ekuboSepoliaConfig,
@@ -136,3 +163,11 @@ const avnuConfigs: Record<Network, AvnuConfig> = {
 };
 
 export const avnuConfig = avnuConfigs[network];
+
+const endurConfigs: Record<Network, EndurConfig> = {
+  devnet: endurDevnetConfig,
+  sepolia: endurSepoliaConfig,
+  mainnet: endurMainnetConfig,
+};
+
+export const endurConfig = endurConfigs[network];
