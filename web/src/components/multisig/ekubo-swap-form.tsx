@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowDownIcon, LoaderCircleIcon } from "lucide-react";
-import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useDeferredValue, useMemo, useState } from "react";
 
@@ -139,11 +138,6 @@ export function EkuboSwapForm() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
-        <span>Powered by</span>
-        <Image alt="Ekubo" height={18} src="/ekubo.svg" width={58} />
-      </div>
-
       <Field className="grid gap-4 rounded-lg border border-border bg-muted/30 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="grid gap-2">
           <FieldLabel htmlFor="ekubo-sell-amount">From</FieldLabel>

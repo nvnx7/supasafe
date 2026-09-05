@@ -4,14 +4,14 @@ import {
   ArrowDownToLineIcon,
   ArrowLeftRightIcon,
   ArrowUpFromLineIcon,
-  ChartNoAxesCombinedIcon,
   type LucideIcon,
+  PanelsTopLeftIcon,
   SendIcon,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-type MultisigAction = "deposit" | "transfer" | "withdraw" | "swap" | "invest";
+type MultisigAction = "deposit" | "transfer" | "withdraw" | "swap" | "apps";
 
 const actions: {
   id: MultisigAction;
@@ -22,7 +22,7 @@ const actions: {
   { id: "transfer", label: "Transfer", icon: SendIcon },
   { id: "withdraw", label: "Withdraw", icon: ArrowUpFromLineIcon },
   { id: "swap", label: "Swap", icon: ArrowLeftRightIcon },
-  { id: "invest", label: "Invest", icon: ChartNoAxesCombinedIcon },
+  { id: "apps", label: "Apps", icon: PanelsTopLeftIcon },
 ];
 
 export function MultisigActions() {
@@ -30,8 +30,11 @@ export function MultisigActions() {
   const router = useRouter();
 
   function handleAction(action: MultisigAction) {
-    const tab = action === "invest" ? "lend" : action;
-    router.push(`/${multisigAddress}/tx?tab=${tab}`);
+    if (action === "apps") {
+      router.push(`/${multisigAddress}/tx?dapp=avnu`);
+      return;
+    }
+    router.push(`/${multisigAddress}/tx?tab=${action}`);
   }
 
   return (

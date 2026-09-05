@@ -143,10 +143,6 @@ export function AvnuSwapForm() {
 
   return (
     <div className="grid gap-4">
-      <p className="text-right text-xs text-muted-foreground">
-        Powered by AVNU
-      </p>
-
       <Field className="grid gap-4 rounded-lg border border-border bg-muted/30 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="grid gap-2">
           <FieldLabel htmlFor="avnu-sell-amount">From</FieldLabel>
