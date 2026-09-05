@@ -48,6 +48,12 @@ const DAPPS: {
     logo: "/logo-avnu.svg",
   },
   {
+    value: "endur",
+    label: "Endur",
+    description: "Private Staking",
+    logo: "/logo-endur.png",
+  },
+  {
     value: "ekubo",
     label: "Ekubo",
     description: "Private Swap",
@@ -58,12 +64,6 @@ const DAPPS: {
     label: "Vesu",
     description: "Private Lending",
     logo: "/logo-vesu.webp",
-  },
-  {
-    value: "endur",
-    label: "Endur",
-    description: "Private Staking",
-    logo: "/logo-endur.png",
   },
 ];
 
