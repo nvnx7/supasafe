@@ -192,7 +192,7 @@ export function EndurStakingForm() {
               <Input
                 aria-invalid={submitted && amountError ? true : undefined}
                 autoComplete="off"
-                className="h-10 border-0 bg-transparent px-0 py-0 text-2xl shadow-none focus-visible:ring-0"
+                className="h-10 border-0 bg-transparent px-0 py-0 text-3xl shadow-none focus-visible:ring-0 md:text-3xl"
                 disabled={Boolean(unavailableLabel)}
                 id="endur-amount"
                 inputMode="decimal"
@@ -223,12 +223,9 @@ export function EndurStakingForm() {
               <FieldLabel>You Receive</FieldLabel>
               <output
                 aria-live="polite"
-                className="text-2xl text-muted-foreground"
+                className="text-3xl text-muted-foreground"
               >
-                {(mode === "stake" && depositPreview.isFetching) ||
-                (mode === "unstake" && unstakeQuote.isFetching)
-                  ? "Calculating..."
-                  : outputAmount}
+                {outputAmount}
               </output>
             </div>
             <div className="flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium">

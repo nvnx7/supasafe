@@ -147,7 +147,7 @@ export function AvnuSwapForm() {
         <div className="grid gap-2">
           <FieldLabel htmlFor="avnu-sell-amount">From</FieldLabel>
           <Input
-            className="h-10 border-0 bg-transparent px-0 py-0 text-2xl shadow-none focus-visible:ring-0"
+            className="h-10 border-0 bg-transparent px-0 py-0 text-3xl shadow-none focus-visible:ring-0 md:text-3xl"
             id="avnu-sell-amount"
             inputMode="decimal"
             onChange={(event) => setAmount(event.target.value)}
@@ -198,7 +198,7 @@ export function AvnuSwapForm() {
         <div className="grid gap-2">
           <FieldLabel htmlFor="avnu-buy-amount">To</FieldLabel>
           <Input
-            className="h-10 border-0 bg-transparent px-0 py-0 text-2xl text-muted-foreground shadow-none focus-visible:ring-0"
+            className="h-10 border-0 bg-transparent px-0 py-0 text-3xl text-muted-foreground shadow-none focus-visible:ring-0 md:text-3xl"
             id="avnu-buy-amount"
             readOnly
             value={receivedAmount}
