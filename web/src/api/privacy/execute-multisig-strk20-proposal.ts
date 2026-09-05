@@ -8,20 +8,27 @@ import { submitStrk20Relay } from "./relay";
 type ExecuteMultisigStrk20ProposalParams = {
   proposal: MultisigProposal;
   viewingKey: bigint;
+  provingBlockId: number;
 };
 
 export async function executeMultisigStrk20Proposal({
   proposal,
   viewingKey,
+  provingBlockId,
 }: ExecuteMultisigStrk20ProposalParams) {
   return submitStrk20Relay({
-    callAndProof: await proveMultisigStrk20Proposal({ proposal, viewingKey }),
+    callAndProof: await proveMultisigStrk20Proposal({
+      proposal,
+      viewingKey,
+      provingBlockId,
+    }),
   });
 }
 
 export async function proveMultisigStrk20Proposal({
   proposal,
   viewingKey,
+  provingBlockId,
 }: ExecuteMultisigStrk20ProposalParams) {
   if (proposal.status !== "ready") {
     throw new Error("Collect the required approvals before executing.");
@@ -31,12 +38,6 @@ export async function proveMultisigStrk20Proposal({
       "This proposal was created before Supasafe started storing its SDK invocation. Recreate it.",
     );
   }
-  if (proposal.provingBlockId === undefined) {
-    throw new Error(
-      "This proposal was created before Supasafe pinned its proving block. Recreate it before executing.",
-    );
-  }
-
   const signature = packSignatureBundle(
     proposal.signatures.map((entry) => {
       const ownerIndex = proposal.owners.findIndex(
@@ -59,7 +60,7 @@ export async function proveMultisigStrk20Proposal({
       registry: createEmptyRegistry(),
       warnings: [],
     },
-    proposal.provingBlockId,
+    provingBlockId,
   );
 
   return callAndProof;

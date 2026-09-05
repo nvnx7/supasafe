@@ -21,9 +21,14 @@ export function useExecuteMultisigStrk20Proposal() {
       proposal,
       viewingKey,
     }: ExecuteMultisigStrk20ProposalParams) => {
+      const provingBlockId = Math.max(
+        0,
+        (await provider.getBlockNumber()) - 10,
+      );
       const transactionHash = await executeMultisigStrk20Proposal({
         proposal,
         viewingKey,
+        provingBlockId,
       });
       await provider.waitForTransaction(transactionHash);
       await multisigProposalProvider.markExecuted(proposal.hash);

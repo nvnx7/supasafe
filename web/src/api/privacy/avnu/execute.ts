@@ -11,11 +11,13 @@ import { submitAvnuPrivateSwap } from "./paymaster";
 export type ExecuteMultisigAvnuPrivateSwapProposalParams = {
   proposal: MultisigProposal;
   viewingKey: bigint;
+  provingBlockId: number;
 };
 
 export async function executeMultisigAvnuPrivateSwapProposal({
   proposal,
   viewingKey,
+  provingBlockId,
 }: ExecuteMultisigAvnuPrivateSwapProposalParams) {
   const avnu = proposal.display.avnu;
   if (!avnu) {
@@ -25,6 +27,7 @@ export async function executeMultisigAvnuPrivateSwapProposal({
   const callAndProof = await proveMultisigStrk20Proposal({
     proposal,
     viewingKey,
+    provingBlockId,
   });
   return submitAvnuPrivateSwap({
     callAndProof,
@@ -42,10 +45,18 @@ export function useExecuteMultisigAvnuPrivateSwapProposal() {
     mutationFn: async ({
       proposal,
       viewingKey,
-    }: ExecuteMultisigAvnuPrivateSwapProposalParams) => {
+    }: Omit<
+      ExecuteMultisigAvnuPrivateSwapProposalParams,
+      "provingBlockId"
+    >) => {
+      const provingBlockId = Math.max(
+        0,
+        (await provider.getBlockNumber()) - 10,
+      );
       const transactionHash = await executeMultisigAvnuPrivateSwapProposal({
         proposal,
         viewingKey,
+        provingBlockId,
       });
       await provider.waitForTransaction(transactionHash);
       await multisigProposalProvider.markExecuted(proposal.hash);

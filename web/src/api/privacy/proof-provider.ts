@@ -11,6 +11,7 @@ import type { constants } from "starknet";
 import type { NetworkConfig } from "@/config/network";
 
 const STARKSCAN_PROVE_URL = "https://api.starkscan.co/v1/SN_MAIN/prove";
+const STARKSCAN_PROVE_PROXY_URL = "/api/prover";
 const FALLBACK_POLL_DELAY_SECONDS = 5;
 
 type StarkscanL2ToL1Message = {
@@ -52,10 +53,7 @@ type StarkscanProofRequest = {
 class StarkscanProofProvider implements ProofProviderInterface {
   private readonly defaultDetailsProvider: ProvingServiceProofProvider;
 
-  constructor(
-    private readonly apiKey: string,
-    chainId: constants.StarknetChainId,
-  ) {
+  constructor(chainId: constants.StarknetChainId) {
     this.defaultDetailsProvider = new ProvingServiceProofProvider(
       STARKSCAN_PROVE_URL,
       chainId,
@@ -74,12 +72,6 @@ class StarkscanProofProvider implements ProofProviderInterface {
     invocation: ProofInvocation,
     blockIdentifier?: ProvingBlockId,
   ): Promise<Proof> {
-    if (!this.apiKey) {
-      throw new Error(
-        "Missing NEXT_PUBLIC_API_KEY_STARKSCAN for mainnet proof generation.",
-      );
-    }
-
     const request: StarkscanProofRequest = {
       block_id: toStarkscanBlockId(blockIdentifier),
       transaction: serializeBigInts(invocation),
@@ -118,9 +110,8 @@ class StarkscanProofProvider implements ProofProviderInterface {
   ): Promise<StarkscanProofJob> {
     try {
       const response = await axios.post<StarkscanProofJob>(
-        STARKSCAN_PROVE_URL,
-        request,
-        { headers: this.headers(idempotencyKey) },
+        STARKSCAN_PROVE_PROXY_URL,
+        { request, idempotencyKey },
       );
       return response.data;
     } catch (error) {
@@ -131,20 +122,13 @@ class StarkscanProofProvider implements ProofProviderInterface {
   private async getJob(jobId: string): Promise<StarkscanProofJob> {
     try {
       const response = await axios.get<StarkscanProofJob>(
-        `${STARKSCAN_PROVE_URL}/${jobId}`,
-        { headers: this.headers() },
+        STARKSCAN_PROVE_PROXY_URL,
+        { params: { jobId } },
       );
       return response.data;
     } catch (error) {
       throw toStarkscanError(error);
     }
-  }
-
-  private headers(idempotencyKey?: string) {
-    return {
-      "X-Starkscan-Api-Key": this.apiKey,
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-    };
   }
 }
 
@@ -153,7 +137,6 @@ export function createProofProvider(
 ): ProofProviderInterface {
   if (config.proving.kind === "starkscan") {
     return new StarkscanProofProvider(
-      config.proving.apiKey,
       config.chainId as constants.StarknetChainId,
     );
   }

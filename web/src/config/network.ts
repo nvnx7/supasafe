@@ -2,7 +2,6 @@ import { type Chain, devnet } from "@starknetfoundation/starknet-start-chains";
 import { constants } from "starknet";
 import { DEVNET_CHAIN_ID } from "./constants";
 import {
-  apiKeyStarkscanMainnet,
   indexerUrlMainnet,
   indexerUrlSepolia,
   network,
@@ -21,7 +20,6 @@ export type ProvingConfig =
     }
   | {
       kind: "starkscan";
-      apiKey: string;
     };
 
 export type NetworkConfig = {
@@ -75,7 +73,7 @@ const mainnetConfig: NetworkConfig = {
   rpcUrl: rpcUrlMainnet,
   chainId: constants.StarknetChainId.SN_MAIN,
   indexerUrl: indexerUrlMainnet,
-  proving: { kind: "starkscan", apiKey: apiKeyStarkscanMainnet },
+  proving: { kind: "starkscan" },
   multisigClassHash:
     "0x5fd9ebaf5712f4f36f8d925e3a8dcac0aafda991cc7f752d9e21f3841faa494",
   privacyPoolAddress:
