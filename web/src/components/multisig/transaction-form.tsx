@@ -14,6 +14,7 @@ import {
   useGetPublicViewKey,
   useTransferPrivateBalanceToMultisig,
 } from "@/api/privacy";
+import { useTokenUsdPrices } from "@/api/token-prices";
 import { TokenLogo } from "@/components/token-logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +53,7 @@ import {
   type TransactionKind,
   truncateAddress,
 } from "@/lib/multisig";
+import { calculateUsdValue, formatUsdValue } from "@/utils/prices";
 
 type StandardTransactionKind = Exclude<TransactionKind, "swap">;
 
@@ -105,6 +107,7 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
   const { needsRecipient, cta, hint, recipientLabel } = KINDS[kind];
   const { multisigAddress } = useParams<{ multisigAddress: string }>();
   const { address: connectedWalletAddress } = useAccount();
+  const tokenUsdPrices = useTokenUsdPrices();
   const { getBalancesAsync, isPending: isFetchingWalletPrivateBalance } =
     useStrk20Balances();
   const {
@@ -158,6 +161,14 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
       return undefined;
     }
   }, [amount, selectedToken]);
+  const estimatedUsdValue =
+    selectedToken && parsedAmount !== undefined
+      ? calculateUsdValue({
+          amount: parsedAmount,
+          decimals: selectedToken.decimals,
+          priceUsd: tokenUsdPrices.data?.[selectedToken.coingeckoPriceId],
+        })
+      : undefined;
   const amountError = !isValidAmount(amount)
     ? "Enter an amount greater than zero."
     : parsedAmount === undefined
@@ -417,9 +428,12 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
           <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
             <span>
               Estimated value:{" "}
-              <span className="text-foreground">≈ $0.00 USD</span>
+              <span className="text-foreground">
+                {parsedAmount === undefined
+                  ? "$0.00"
+                  : `≈ ${formatUsdValue(estimatedUsdValue)}`}
+              </span>
             </span>
-            <span>Price unavailable</span>
           </div>
           {submitted && amountError ? (
             <FieldError>{amountError}</FieldError>
