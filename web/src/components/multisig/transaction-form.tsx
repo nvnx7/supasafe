@@ -1,15 +1,18 @@
 "use client";
 
-import { useAccount } from "@starknetfoundation/starknet-start-react";
+import {
+  useAccount,
+  useStrk20Balances,
+} from "@starknetfoundation/starknet-start-react";
 import { ArrowRightIcon } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   useCreateMultisigTransferProposal,
   useCreateMultisigWithdrawProposal,
-  useDepositToMultisig,
   useGetPublicViewKey,
+  useTransferPrivateBalanceToMultisig,
 } from "@/api/privacy";
 import { TokenLogo } from "@/components/token-logo";
 import { Button } from "@/components/ui/button";
@@ -42,6 +45,7 @@ import { toast } from "@/components/ui/toast";
 import { getTokenByAddress, tokens } from "@/config/tokens";
 import { useMultisigProposalContext } from "@/hooks/use-multisig-proposal-context";
 import {
+  formatTokenAmount,
   isValidAddress,
   isValidAmount,
   parseTokenAmount,
@@ -57,8 +61,8 @@ const KINDS: Record<
 > = {
   deposit: {
     needsRecipient: false,
-    cta: "Deposit",
-    hint: "Moves funds from the connected wallet into this multisig.",
+    cta: "Transfer To Multisig",
+    hint: "Transfers shielded tokens from your connected Ready wallet into this multisig. Fund your wallet's private balance first.",
     recipientLabel: "",
   },
   withdraw: {
@@ -87,10 +91,22 @@ function isWalletTimeout(reason: unknown) {
   );
 }
 
+function getPrivateTokenBalance(
+  balances: { token: string; balance: string }[],
+  token: string,
+) {
+  return BigInt(
+    balances.find((entry) => BigInt(entry.token) === BigInt(token))?.balance ??
+      "0",
+  );
+}
+
 export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
   const { needsRecipient, cta, hint, recipientLabel } = KINDS[kind];
   const { multisigAddress } = useParams<{ multisigAddress: string }>();
   const { address: connectedWalletAddress } = useAccount();
+  const { getBalancesAsync, isPending: isFetchingWalletPrivateBalance } =
+    useStrk20Balances();
   const {
     multisig,
     owner,
@@ -108,36 +124,109 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
     isPending: isCreatingTransferProposal,
     error: transferError,
   } = useCreateMultisigTransferProposal();
-  const { depositToMultisigAsync, reset: resetDeposit } =
-    useDepositToMultisig();
-  const { refetch: refetchWalletPublicViewKey } = useGetPublicViewKey(
-    connectedWalletAddress,
-  );
+  const { transferPrivateBalanceToMultisigAsync, reset: resetDeposit } =
+    useTransferPrivateBalanceToMultisig();
+  const {
+    data: walletPublicViewKey,
+    isLoading: isCheckingWalletRegistration,
+    refetch: refetchWalletPublicViewKey,
+  } = useGetPublicViewKey(connectedWalletAddress);
   const [token, setToken] = useState(tokens[0]?.address ?? "");
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isWalletRegistrationDialogOpen, setWalletRegistrationDialogOpen] =
     useState(false);
+  const [walletPrivateBalance, setWalletPrivateBalance] = useState<
+    bigint | undefined
+  >();
+  const [walletPrivateBalanceError, setWalletPrivateBalanceError] =
+    useState<Error | null>(null);
   const depositRequest = useRef<Promise<{ transaction_hash: string }> | null>(
     null,
   );
+  const getBalancesAsyncRef = useRef(getBalancesAsync);
   const selectedToken = getTokenByAddress(token);
   const isCreatingProposal =
     isCreatingWithdrawProposal || isCreatingTransferProposal;
-  const amountError = isValidAmount(amount)
-    ? undefined
-    : "Enter an amount greater than zero.";
+  const parsedAmount = useMemo(() => {
+    if (!selectedToken || !isValidAmount(amount)) return undefined;
+
+    try {
+      return parseTokenAmount(amount, selectedToken.decimals);
+    } catch {
+      return undefined;
+    }
+  }, [amount, selectedToken]);
+  const amountError = !isValidAmount(amount)
+    ? "Enter an amount greater than zero."
+    : parsedAmount === undefined
+      ? `Enter an amount with at most ${selectedToken?.decimals ?? 0} decimal places.`
+      : kind === "deposit" &&
+          walletPrivateBalance !== undefined &&
+          parsedAmount > walletPrivateBalance
+        ? "Amount exceeds your connected wallet's private balance."
+        : undefined;
   const recipientError =
     !needsRecipient || isValidAddress(recipient)
       ? undefined
       : "Enter a valid address.";
   const valid = !amountError && !recipientError;
 
+  useEffect(() => {
+    getBalancesAsyncRef.current = getBalancesAsync;
+  }, [getBalancesAsync]);
+
+  useEffect(() => {
+    if (
+      kind !== "deposit" ||
+      !connectedWalletAddress ||
+      isCheckingWalletRegistration ||
+      !walletPublicViewKey
+    ) {
+      setWalletPrivateBalance(undefined);
+      setWalletPrivateBalanceError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setWalletPrivateBalance(undefined);
+    setWalletPrivateBalanceError(null);
+
+    void getBalancesAsyncRef
+      .current([token])
+      .then((balances) => {
+        if (!cancelled) {
+          setWalletPrivateBalance(getPrivateTokenBalance(balances, token));
+        }
+      })
+      .catch((reason) => {
+        if (!cancelled) {
+          setWalletPrivateBalanceError(
+            reason instanceof Error
+              ? reason
+              : new Error(
+                  "Could not load the connected wallet's private balance.",
+                ),
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    connectedWalletAddress,
+    isCheckingWalletRegistration,
+    kind,
+    token,
+    walletPublicViewKey,
+  ]);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSubmitted(true);
-    if (!valid || !selectedToken) return;
+    if (!valid || !selectedToken || parsedAmount === undefined) return;
 
     if (kind === "deposit") {
       if (depositRequest.current) {
@@ -163,24 +252,34 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
           return;
         }
 
-        const request = depositToMultisigAsync({
+        const balances = await getBalancesAsync([token]);
+        const availableBalance = getPrivateTokenBalance(balances, token);
+        setWalletPrivateBalance(availableBalance);
+        if (parsedAmount > availableBalance) {
+          throw new Error(
+            "Amount exceeds your connected wallet's private balance.",
+          );
+        }
+
+        const request = transferPrivateBalanceToMultisigAsync({
           token,
-          amount: parseTokenAmount(amount, selectedToken.decimals),
+          amount: parsedAmount,
           multisigAddress,
         });
         depositRequest.current = request;
         resetDeposit();
         toast.add({
           type: "info",
-          title: "Confirm deposit in your wallet",
-          description: "The request is ready for wallet confirmation.",
+          title: "Confirm private transfer in your wallet",
+          description:
+            "Ready will transfer shielded tokens into this multisig.",
         });
 
         void request
           .then((transaction) => {
             toast.add({
               type: "success",
-              title: "Deposit submitted",
+              title: "Private transfer submitted",
               description: `Transaction ${truncateAddress(transaction.transaction_hash, 10)} submitted.`,
             });
           })
@@ -222,7 +321,7 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
         ...proposalParams,
         token,
         tokenSymbol: selectedToken.symbol,
-        amount: parseTokenAmount(amount, selectedToken.decimals),
+        amount: parsedAmount,
         recipient: recipient.trim(),
       };
 
@@ -254,7 +353,15 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
           <div className="flex items-center justify-between gap-4">
             <FieldLabel htmlFor={`${kind}-token`}>Token</FieldLabel>
             <span className="text-xs text-muted-foreground">
-              Private balance
+              {kind === "deposit"
+                ? isCheckingWalletRegistration || isFetchingWalletPrivateBalance
+                  ? "Checking private balance..."
+                  : !walletPublicViewKey
+                    ? "Enable private tokens in Ready"
+                    : walletPrivateBalance !== undefined
+                      ? `Available: ${formatTokenAmount(walletPrivateBalance, selectedToken?.decimals ?? 18)} ${selectedToken?.symbol ?? ""}`
+                      : "Private balance unavailable"
+                : "Private balance"}
             </span>
           </div>
           <Select
@@ -288,7 +395,8 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
           <div className="flex items-center justify-between gap-4">
             <FieldLabel htmlFor={`${kind}-amount`}>Amount</FieldLabel>
             <span className="text-xs text-muted-foreground">
-              Enter {selectedToken?.symbol ?? "token"} amount
+              {kind === "deposit" ? "Transfer" : "Enter"}{" "}
+              {selectedToken?.symbol ?? "token"} amount
             </span>
           </div>
           <div className="relative">
@@ -315,6 +423,9 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
           </div>
           {submitted && amountError ? (
             <FieldError>{amountError}</FieldError>
+          ) : null}
+          {kind === "deposit" && walletPrivateBalanceError ? (
+            <FieldError>{walletPrivateBalanceError.message}</FieldError>
           ) : null}
         </Field>
 
