@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccount } from "@starknetfoundation/starknet-start-react";
 import { ArrowRightIcon } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
@@ -8,9 +9,18 @@ import {
   useCreateMultisigTransferProposal,
   useCreateMultisigWithdrawProposal,
   useDepositToMultisig,
+  useGetPublicViewKey,
 } from "@/api/privacy";
 import { TokenLogo } from "@/components/token-logo";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Field,
   FieldDescription,
@@ -80,6 +90,7 @@ function isWalletTimeout(reason: unknown) {
 export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
   const { needsRecipient, cta, hint, recipientLabel } = KINDS[kind];
   const { multisigAddress } = useParams<{ multisigAddress: string }>();
+  const { address: connectedWalletAddress } = useAccount();
   const {
     multisig,
     owner,
@@ -99,10 +110,15 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
   } = useCreateMultisigTransferProposal();
   const { depositToMultisigAsync, reset: resetDeposit } =
     useDepositToMultisig();
+  const { refetch: refetchWalletPublicViewKey } = useGetPublicViewKey(
+    connectedWalletAddress,
+  );
   const [token, setToken] = useState(tokens[0]?.address ?? "");
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isWalletRegistrationDialogOpen, setWalletRegistrationDialogOpen] =
+    useState(false);
   const depositRequest = useRef<Promise<{ transaction_hash: string }> | null>(
     null,
   );
@@ -134,6 +150,19 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
       }
 
       try {
+        if (!connectedWalletAddress) {
+          throw new Error("Connect a wallet before depositing.");
+        }
+
+        const walletViewKey = await refetchWalletPublicViewKey();
+        if (walletViewKey.isError) {
+          throw new Error("Could not check this wallet's STRK20 registration.");
+        }
+        if (!walletViewKey.data) {
+          setWalletRegistrationDialogOpen(true);
+          return;
+        }
+
         const request = depositToMultisigAsync({
           token,
           amount: parseTokenAmount(amount, selectedToken.decimals),
@@ -350,6 +379,30 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
           ) : null}
         </Button>
       </FieldGroup>
+
+      <Dialog
+        open={isWalletRegistrationDialogOpen}
+        onOpenChange={setWalletRegistrationDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enable Private Tokens In Ready</DialogTitle>
+            <DialogDescription>
+              This connected wallet is not registered with the STRK20 privacy
+              pool. Open Ready, enable Private Tokens for this account, then
+              return here to deposit into the multisig.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => setWalletRegistrationDialogOpen(false)}
+            >
+              I&apos;ve Registered My Wallet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }
