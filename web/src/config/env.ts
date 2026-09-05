@@ -13,11 +13,16 @@ export const rpcUrlMainnet = process.env.NEXT_PUBLIC_RPC_URL_MAINNET as string;
 
 export const proverUrlSepolia = process.env
   .NEXT_PUBLIC_PROVER_URL_SEPOLIA as string;
+
 export const indexerUrlSepolia = process.env
   .NEXT_PUBLIC_INDEXER_URL_SEPOLIA as string;
 export const indexerUrlMainnet = process.env
   .NEXT_PUBLIC_INDEXER_URL_MAINNET as string;
+
 export const apiKeyStarkscanMainnet = process.env
   .NEXT_PUBLIC_API_KEY_STARKSCAN_MAINNET as string;
+
+export const apiKeyCoinGecko = process.env
+  .NEXT_PUBLIC_API_KEY_COINGECKO as string;
 
 export const apiKeyPaymasterAvnu = process.env.API_KEY_PAYMASTER_AVNU as string;

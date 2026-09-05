@@ -14,8 +14,12 @@ import {
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useGetMultisig, useGetMultisigViewingPublicKey } from "@/api/multisig";
-import { useGetPublicViewKey } from "@/api/privacy";
+import {
+  useGetMultisigStrk20Balances,
+  useGetPublicViewKey,
+} from "@/api/privacy";
 import { useGetOwnerProposals } from "@/api/proposal";
+import { useTokenUsdPrices } from "@/api/token-prices";
 import { ActivateMultisigButton } from "@/components/multisig/activate-multisig-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,10 +27,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { network } from "@/config/env";
-import { tokens } from "@/config/tokens";
+import { getTokenByAddress, tokens } from "@/config/tokens";
+import { useMultisigViewingKey } from "@/hooks/use-multisig-viewing-key";
 import { truncateAddress } from "@/lib/multisig";
-
-const PLACEHOLDER_TOTAL_BALANCE = "$42,850.40";
+import { calculateUsdValue, formatUsdValue } from "@/utils/prices";
 
 function getExplorerUrl(address: string) {
   if (network === "mainnet") {
@@ -46,6 +50,12 @@ export function MultisigOverview() {
   const { address: ownerAddress } = useAccount();
   const { data: multisig, isLoading } = useGetMultisig(multisigAddress);
   const { data: poolViewKey } = useGetPublicViewKey(multisigAddress);
+  const multisigViewingKey = useMultisigViewingKey(multisigAddress);
+  const balances = useGetMultisigStrk20Balances({
+    multisigAddress,
+    viewingKey: poolViewKey ? multisigViewingKey : undefined,
+  });
+  const tokenUsdPrices = useTokenUsdPrices();
   const { data: factoryViewKey } =
     useGetMultisigViewingPublicKey(multisigAddress);
   const { data: proposals, isLoading: proposalsLoading } = useGetOwnerProposals(
@@ -70,6 +80,20 @@ export function MultisigOverview() {
   const openProposalCount = proposals?.length ?? 0;
   const hasPendingApprovals = openProposalCount > 0;
   const explorerUrl = getExplorerUrl(address);
+  const totalUsdBalance = balances.data?.reduce<number | undefined>(
+    (total, balance) => {
+      if (total === undefined) return undefined;
+      const token = getTokenByAddress(balance.token);
+      if (!token) return total;
+      const value = calculateUsdValue({
+        amount: balance.amount,
+        decimals: token.decimals,
+        priceUsd: tokenUsdPrices.data?.[token.coingeckoPriceId],
+      });
+      return value === undefined ? undefined : total + value;
+    },
+    0,
+  );
 
   function handleNewTransaction() {
     router.push(`/${multisigAddress}/tx`);
@@ -117,13 +141,17 @@ export function MultisigOverview() {
       <CardContent>
         <div className="flex flex-wrap items-start justify-between gap-5 pb-8">
           <div>
-            <p className="text-4xl font-bold tabular-nums sm:text-5xl">
-              {PLACEHOLDER_TOTAL_BALANCE}
+            <p className="text-xs text-muted-foreground">
+              Total Shielded Balance
             </p>
-            <Badge
-              className="mt-3"
-              variant={isActive ? "secondary" : "outline"}
-            >
+            <p className="mt-1 pt-2 pb-4 text-4xl font-bold tabular-nums sm:text-5xl">
+              {balances.isLoading || tokenUsdPrices.isLoading
+                ? "…"
+                : totalUsdBalance !== undefined
+                  ? formatUsdValue(totalUsdBalance)
+                  : "$0.00"}
+            </p>
+            <Badge variant={isActive ? "secondary" : "outline"}>
               {isActive ? <CheckCircle2Icon /> : <TriangleAlertIcon />}
               {isActive ? "Private Account Active" : "Activation Required"}
             </Badge>

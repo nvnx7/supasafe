@@ -1,18 +1,12 @@
 "use client";
 
-import { useAccount } from "@starknetfoundation/starknet-start-react";
-import { derivePublicKey } from "@starkware-libs/starknet-privacy-sdk/utils";
 import { KeyRoundIcon, RefreshCwIcon, ShieldCheckIcon } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useMemo } from "react";
-import {
-  useGetEncryptedViewingKey,
-  useGetMultisigViewingPublicKey,
-} from "@/api/multisig";
 import {
   useGetMultisigStrk20Balances,
   useGetPublicViewKey,
 } from "@/api/privacy";
+import { useTokenUsdPrices } from "@/api/token-prices";
 import { TokenLogo } from "@/components/token-logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +19,8 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { tokens } from "@/config/tokens";
-import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
-import { decryptViewKey } from "@/utils/encryption";
+import { useMultisigViewingKey } from "@/hooks/use-multisig-viewing-key";
+import { calculateUsdValue, formatUsdValue } from "@/utils/prices";
 
 function formatAmount(amount: bigint, decimals: number) {
   const base = 10n ** BigInt(decimals);
@@ -40,44 +34,21 @@ function formatAmount(amount: bigint, decimals: number) {
 
 export function MultisigBalances() {
   const { multisigAddress } = useParams<{ multisigAddress: string }>();
-  const { address } = useAccount();
-  const { privateKey: supasafeViewKey } = useSupasafeViewKey();
-  const encryptedKey = useGetEncryptedViewingKey(multisigAddress, address);
-  const viewingPublicKey = useGetMultisigViewingPublicKey(multisigAddress);
   const poolViewKey = useGetPublicViewKey(multisigAddress);
-
-  const multisigViewingKey = useMemo(() => {
-    if (
-      !supasafeViewKey ||
-      !encryptedKey.data ||
-      viewingPublicKey.data === undefined
-    ) {
-      return undefined;
-    }
-
-    try {
-      const key = decryptViewKey({
-        ephemeralPubkey: encryptedKey.data.ephemeralPubkey,
-        ciphertext: encryptedKey.data.ciphertext,
-        recipientPrivateKey: supasafeViewKey,
-      });
-      return derivePublicKey(key) === viewingPublicKey.data ? key : undefined;
-    } catch {
-      return undefined;
-    }
-  }, [encryptedKey.data, supasafeViewKey, viewingPublicKey.data]);
+  const multisigViewingKey = useMultisigViewingKey(multisigAddress);
 
   const balances = useGetMultisigStrk20Balances({
     multisigAddress,
     viewingKey: poolViewKey.data ? multisigViewingKey : undefined,
   });
+  const tokenUsdPrices = useTokenUsdPrices();
 
   return (
     <Card className="[--card-spacing:--spacing(5)]">
       <CardHeader className="border-b">
         <CardTitle>Shielded Token Balances</CardTitle>
         <CardDescription>
-          Private assets and positions held by this multisig.
+          Private Assets And Positions Held By This Multisig.
         </CardDescription>
         <CardAction>
           <Button
@@ -135,6 +106,12 @@ export function MultisigBalances() {
               const balance = balances.data.find(
                 (entry) => BigInt(entry.token) === BigInt(token.address),
               );
+              const amount = balance?.amount ?? 0n;
+              const usdValue = calculateUsdValue({
+                amount,
+                decimals: token.decimals,
+                priceUsd: tokenUsdPrices.data?.[token.coingeckoPriceId],
+              });
               return (
                 <div
                   key={token.address}
@@ -143,18 +120,18 @@ export function MultisigBalances() {
                   <div className="flex min-w-0 items-center gap-3">
                     <TokenLogo token={token} className="size-11" />
                     <span className="min-w-0">
-                      <span className="font-medium">{token.name}</span>
+                      <span className="font-semibold">{token.symbol}</span>
                       <span className="block text-xs text-muted-foreground">
-                        {token.symbol}
+                        {token.name}
                       </span>
                     </span>
                   </div>
                   <span className="text-right">
                     <span className="block text-base font-semibold tabular-nums">
-                      {formatAmount(balance?.amount ?? 0n, token.decimals)}
+                      {formatAmount(amount, token.decimals)} {token.symbol}
                     </span>
                     <span className="block text-xs text-muted-foreground">
-                      {token.symbol}
+                      {formatUsdValue(usdValue)}
                     </span>
                   </span>
                 </div>
