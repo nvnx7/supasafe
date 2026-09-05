@@ -26,6 +26,8 @@ export type CreateMultisigAvnuPrivateSwapProposalParams = {
   buyTokenSymbol: string;
   slippage: number;
   feeMode: AvnuPrivateSwapFeeMode;
+  title?: string;
+  description?: string;
 };
 
 export async function createMultisigAvnuPrivateSwapProposal({
@@ -39,6 +41,8 @@ export async function createMultisigAvnuPrivateSwapProposal({
   buyTokenSymbol,
   slippage,
   feeMode,
+  title,
+  description,
 }: CreateMultisigAvnuPrivateSwapProposalParams) {
   if (quote.sellAmount <= 0n || quote.buyAmount <= 0n) {
     throw new Error("AVNU returned an invalid swap quote.");
@@ -72,6 +76,8 @@ export async function createMultisigAvnuPrivateSwapProposal({
     buyTokenSymbol,
     slippage,
     feeMode,
+    title,
+    description,
     fee,
     executorAddress: calls.executorAddress,
     executorCalls: calls.calls,
@@ -89,6 +95,8 @@ async function createProposal({
   buyTokenSymbol,
   slippage,
   feeMode,
+  title,
+  description,
   fee,
   executorAddress,
   executorCalls,
@@ -105,8 +113,9 @@ async function createProposal({
     signApproval,
     display: {
       kind: "avnu-private-swap",
-      title: `Swap ${sellTokenSymbol} for ${buyTokenSymbol}`,
-      description: "Swap this multisig's private balance through AVNU.",
+      title: title ?? `Swap ${sellTokenSymbol} for ${buyTokenSymbol}`,
+      description:
+        description ?? "Swap this multisig's private balance through AVNU.",
       token: { symbol: sellTokenSymbol, address: quote.sellTokenAddress },
       amount: quote.sellAmount.toString(),
       outputToken: { symbol: buyTokenSymbol, address: quote.buyTokenAddress },
