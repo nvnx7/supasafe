@@ -1,4 +1,4 @@
-import { Account, RpcProvider } from "starknet";
+import { Account, constants, RpcProvider } from "starknet";
 import { networkConfig } from "@/config/network";
 
 export const runtime = "nodejs";
@@ -37,8 +37,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const relayAccount = getRelayAccount();
+    const { account: relayAccount, relayAddressEnv } = getRelayAccount();
     const feeAmount = await getPoolFeeAmount(relayAccount.provider);
+    await ensureRelayCanPayPoolFee({
+      provider: relayAccount.provider,
+      relayAddress: relayAccount.address,
+      relayAddressEnv,
+      feeAmount,
+    });
     const transaction = await relayAccount.execute(
       [
         ...(feeAmount > 0n
@@ -90,20 +96,92 @@ async function getPoolFeeAmount(provider: RpcProvider) {
   return BigInt(feeAmount);
 }
 
-function getRelayAccount() {
-  const address = process.env.RELAYER_ADDRESS;
-  const privateKey = process.env.RELAYER_PRIVATE_KEY;
-
-  if (!address || !privateKey) {
-    throw new Error("The relay account is not configured.");
+async function ensureRelayCanPayPoolFee({
+  provider,
+  relayAddress,
+  relayAddressEnv,
+  feeAmount,
+}: {
+  provider: RpcProvider;
+  relayAddress: string;
+  relayAddressEnv: string;
+  feeAmount: bigint;
+}) {
+  if (feeAmount === 0n) {
+    return;
   }
 
-  return new Account({
-    provider: new RpcProvider({ nodeUrl: networkConfig.rpcUrl }),
-    address,
-    signer: privateKey,
-    cairoVersion: "1",
+  const balance = await provider.callContract({
+    contractAddress: STRK_TOKEN_ADDRESS,
+    entrypoint: "balanceOf",
+    calldata: [relayAddress],
   });
+  const [low, high] = balance;
+
+  if (balance.length !== 2 || !low || !high) {
+    throw new Error("Could not read the relayer's STRK balance.");
+  }
+
+  const available = BigInt(low) + (BigInt(high) << 128n);
+  if (available < feeAmount) {
+    throw new Error(
+      `The relay account needs at least ${formatStrk(feeAmount)} STRK for the privacy-pool fee, but has ${formatStrk(available)} STRK. Fund ${relayAddressEnv} with STRK and leave extra for network gas.`,
+    );
+  }
+}
+
+function formatStrk(amount: bigint) {
+  const decimals = 10n ** 18n;
+  const whole = amount / decimals;
+  const fraction = (amount % decimals).toString().padStart(18, "0");
+  const significantFraction = fraction.slice(0, 6).replace(/0+$/, "");
+
+  return significantFraction
+    ? `${whole}.${significantFraction}`
+    : whole.toString();
+}
+
+function getRelayAccount() {
+  const relayCredentials = getRelayCredentials();
+
+  if (!relayCredentials.address || !relayCredentials.privateKey) {
+    throw new Error(
+      `The relay account is not configured. Set ${relayCredentials.addressEnv} and ${relayCredentials.privateKeyEnv}.`,
+    );
+  }
+
+  return {
+    account: new Account({
+      provider: new RpcProvider({ nodeUrl: networkConfig.rpcUrl }),
+      address: relayCredentials.address,
+      signer: relayCredentials.privateKey,
+      cairoVersion: "1",
+    }),
+    relayAddressEnv: relayCredentials.addressEnv,
+  };
+}
+
+function getRelayCredentials() {
+  switch (networkConfig.chainId) {
+    case constants.StarknetChainId.SN_SEPOLIA:
+      return {
+        address: process.env.RELAYER_ADDRESS_SEPOLIA,
+        privateKey: process.env.RELAYER_PRIVATE_KEY_SEPOLIA,
+        addressEnv: "RELAYER_ADDRESS_SEPOLIA",
+        privateKeyEnv: "RELAYER_PRIVATE_KEY_SEPOLIA",
+      };
+    case constants.StarknetChainId.SN_MAIN:
+      return {
+        address: process.env.RELAYER_ADDRESS_MAINNET,
+        privateKey: process.env.RELAYER_PRIVATE_KEY_MAINNET,
+        addressEnv: "RELAYER_ADDRESS_MAINNET",
+        privateKeyEnv: "RELAYER_PRIVATE_KEY_MAINNET",
+      };
+    default:
+      throw new Error(
+        "STRK20 relaying is only configured for Sepolia and mainnet.",
+      );
+  }
 }
 
 function isRelayPayload(value: unknown): value is RelayPayload {
