@@ -20,7 +20,7 @@ export const indexerUrlMainnet = process.env
   .NEXT_PUBLIC_INDEXER_URL_MAINNET as string;
 
 export const apiKeyStarkscanMainnet = process.env
-  .NEXT_PUBLIC_API_KEY_STARKSCAN_MAINNET as string;
+  .API_KEY_STARKSCAN_MAINNET as string;
 
 export const apiKeyCoinGecko = process.env
   .NEXT_PUBLIC_API_KEY_COINGECKO as string;
