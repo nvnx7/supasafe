@@ -72,6 +72,8 @@ export function LendingForm() {
     viewingKey: multisigViewingKey,
     isSupasafeViewKeyReady,
     createProposalParams,
+    strk20Balances,
+    getPrivateBalance,
   } = useMultisigProposalContext(address);
   const {
     createMultisigVesuSupplyProposalAsync,
@@ -95,6 +97,11 @@ export function LendingForm() {
     (vault) => BigInt(vault.underlyingToken) === BigInt(underlyingToken || 0),
   );
   const selectedUnderlyingToken = getTokenByAddress(underlyingToken);
+  const selectedSpendingToken =
+    mode === "supply"
+      ? selectedUnderlyingToken
+      : getTokenByAddress(selectedVault?.vTokenAddress);
+  const availableBalance = getPrivateBalance(selectedSpendingToken?.address);
   const decimals = mode === "supply" ? selectedVault?.underlyingDecimals : 18;
   const amountError = isValidAmount(amount)
     ? undefined
@@ -235,9 +242,18 @@ export function LendingForm() {
         </Field>
 
         <Field data-invalid={submitted && amountError ? true : undefined}>
-          <FieldLabel htmlFor="vesu-amount">
-            {mode === "supply" ? "Supply" : "Withdraw"} amount
-          </FieldLabel>
+          <div className="flex items-center justify-between gap-3">
+            <FieldLabel htmlFor="vesu-amount">
+              {mode === "supply" ? "Supply" : "Withdraw"} amount
+            </FieldLabel>
+            <span className="text-xs text-muted-foreground">
+              {strk20Balances.isFetching
+                ? "Checking..."
+                : availableBalance !== undefined
+                  ? `Available: ${formatTokenAmount(availableBalance, selectedSpendingToken?.decimals ?? 18)} ${selectedSpendingToken?.symbol ?? ""}`
+                  : "Balance unavailable"}
+            </span>
+          </div>
           <Input
             className="h-14 px-4 text-lg"
             disabled={!isConfigured}

@@ -52,6 +52,8 @@ export function EkuboSwapForm() {
     viewingKey,
     isSupasafeViewKeyReady,
     createProposalParams,
+    strk20Balances,
+    getPrivateBalance,
   } = useMultisigProposalContext(multisigAddress);
   const [tokenAddress, setTokenAddress] = useState(tokens[0]?.address ?? "");
   const [toTokenAddress, setToTokenAddress] = useState(
@@ -64,6 +66,7 @@ export function EkuboSwapForm() {
 
   const token = getToken(tokenAddress);
   const toToken = getToken(toTokenAddress);
+  const availableBalance = getPrivateBalance(token.address);
   const parsedAmount = useMemo(() => {
     if (!isValidAmount(deferredAmount)) return undefined;
 
@@ -140,7 +143,16 @@ export function EkuboSwapForm() {
     <div className="grid gap-4">
       <Field className="grid gap-4 rounded-lg border border-border bg-muted/30 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="grid gap-2">
-          <FieldLabel htmlFor="ekubo-sell-amount">From</FieldLabel>
+          <div className="flex items-center justify-between gap-3">
+            <FieldLabel htmlFor="ekubo-sell-amount">From</FieldLabel>
+            <span className="text-xs text-muted-foreground">
+              {strk20Balances.isFetching
+                ? "Checking..."
+                : availableBalance !== undefined
+                  ? `Available: ${formatTokenAmount(availableBalance, token.decimals)} ${token.symbol}`
+                  : "Balance unavailable"}
+            </span>
+          </div>
           <Input
             className="h-10 border-0 bg-transparent px-0 py-0 text-2xl shadow-none focus-visible:ring-0"
             id="ekubo-sell-amount"

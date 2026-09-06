@@ -15,6 +15,7 @@ import {
   useGetMultisig,
   useGetMultisigViewingPublicKey,
 } from "@/api/multisig";
+import { useGetMultisigStrk20Balances } from "@/api/privacy";
 import { networkConfig } from "@/config/network";
 import { useSupasafeViewKey } from "@/hooks/use-supasafe-view-key";
 import { buildApprovalTypedData } from "@/lib/signing";
@@ -50,6 +51,24 @@ export function useMultisigProposalContext(multisigAddress: string) {
       return undefined;
     }
   }, [encryptedViewingKey.data, supasafeViewKey, viewingPublicKey.data]);
+  const strk20Balances = useGetMultisigStrk20Balances({
+    multisigAddress,
+    viewingKey,
+  });
+  const getPrivateBalance = useCallback(
+    (tokenAddress: string | undefined) => {
+      if (!tokenAddress) return undefined;
+
+      try {
+        return strk20Balances.data?.find(
+          (balance) => BigInt(balance.token) === BigInt(tokenAddress),
+        )?.amount;
+      } catch {
+        return undefined;
+      }
+    },
+    [strk20Balances.data],
+  );
 
   const createProposalParams = useCallback(async () => {
     if (!multisig || !owner || !viewingKey) {
@@ -79,6 +98,8 @@ export function useMultisigProposalContext(multisigAddress: string) {
     owner,
     viewingKey,
     viewingPublicKey,
+    strk20Balances,
+    getPrivateBalance,
     isSupasafeViewKeyReady,
     createProposalParams,
   };

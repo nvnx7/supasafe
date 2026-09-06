@@ -43,6 +43,24 @@ function getToken(address: string) {
   return token;
 }
 
+function formatProposalError(error: unknown) {
+  if (!(error instanceof Error)) return "Please try again.";
+
+  const insufficientBalance = error.message.match(
+    /^Insufficient balance for token (0x[\da-f]+): need (\d+) more \(total available: (\d+)\)$/i,
+  );
+  if (!insufficientBalance) return error.message;
+
+  const [, tokenAddress, missingAmount, availableAmount] = insufficientBalance;
+  if (!tokenAddress || !missingAmount || !availableAmount) {
+    return error.message;
+  }
+  const token = getTokenByAddress(tokenAddress);
+  if (!token) return "Insufficient private balance for this token.";
+
+  return `Insufficient private ${token.symbol} balance. You need ${formatTokenAmount(BigInt(missingAmount), token.decimals, 8)} ${token.symbol} more; ${formatTokenAmount(BigInt(availableAmount), token.decimals, 8)} ${token.symbol} is available.`;
+}
+
 export function AvnuSwapForm() {
   const params = useParams<{ multisigAddress: string }>();
   const multisigAddress = params.multisigAddress;
@@ -52,6 +70,8 @@ export function AvnuSwapForm() {
     viewingKey,
     isSupasafeViewKeyReady,
     createProposalParams,
+    strk20Balances,
+    getPrivateBalance,
   } = useMultisigProposalContext(multisigAddress);
   const [tokenAddress, setTokenAddress] = useState(tokens[0]?.address ?? "");
   const [toTokenAddress, setToTokenAddress] = useState(
@@ -69,6 +89,7 @@ export function AvnuSwapForm() {
   const token = getToken(tokenAddress);
   const toToken = getToken(toTokenAddress);
   const feeToken = getToken(feeTokenAddress);
+  const availableBalance = getPrivateBalance(token.address);
   const parsedAmount = useMemo(() => {
     if (!isValidAmount(deferredAmount)) return undefined;
 
@@ -127,8 +148,7 @@ export function AvnuSwapForm() {
       toast.add({
         type: "error",
         title: "Could not create swap proposal",
-        description:
-          error instanceof Error ? error.message : "Please try again.",
+        description: formatProposalError(error),
       });
     }
   }
@@ -145,7 +165,16 @@ export function AvnuSwapForm() {
     <div className="grid gap-4">
       <Field className="grid gap-4 rounded-lg border border-border bg-muted/30 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="grid gap-2">
-          <FieldLabel htmlFor="avnu-sell-amount">From</FieldLabel>
+          <div className="flex items-center justify-between gap-3">
+            <FieldLabel htmlFor="avnu-sell-amount">From</FieldLabel>
+            <span className="text-xs text-muted-foreground">
+              {strk20Balances.isFetching
+                ? "Checking..."
+                : availableBalance !== undefined
+                  ? `Available: ${formatTokenAmount(availableBalance, token.decimals)} ${token.symbol}`
+                  : "Balance unavailable"}
+            </span>
+          </div>
           <Input
             className="h-10 border-0 bg-transparent px-0 py-0 text-3xl shadow-none focus-visible:ring-0 md:text-3xl"
             id="avnu-sell-amount"

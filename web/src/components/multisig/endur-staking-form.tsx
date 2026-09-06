@@ -40,6 +40,8 @@ export function EndurStakingForm() {
     viewingKey,
     isSupasafeViewKeyReady,
     createProposalParams,
+    strk20Balances,
+    getPrivateBalance,
   } = useMultisigProposalContext(multisigAddress);
   const [mode, setMode] = useState<EndurMode>("stake");
   const [amount, setAmount] = useState("");
@@ -69,6 +71,7 @@ export function EndurStakingForm() {
       ? endurConfig.xStrkTokenAddress
       : endurConfig.strkTokenAddress,
   );
+  const availableBalance = getPrivateBalance(inputToken?.address);
   const amountError = isValidAmount(amount)
     ? undefined
     : "Enter an amount greater than zero.";
@@ -186,9 +189,18 @@ export function EndurStakingForm() {
             data-invalid={submitted && amountError ? true : undefined}
           >
             <div className="grid gap-2">
-              <FieldLabel htmlFor="endur-amount">
-                {mode === "stake" ? "You Stake" : "You Unstake"}
-              </FieldLabel>
+              <div className="flex items-center justify-between gap-3">
+                <FieldLabel htmlFor="endur-amount">
+                  {mode === "stake" ? "You Stake" : "You Unstake"}
+                </FieldLabel>
+                <span className="text-xs text-muted-foreground">
+                  {strk20Balances.isFetching
+                    ? "Checking..."
+                    : availableBalance !== undefined
+                      ? `Available: ${formatTokenAmount(availableBalance, inputToken?.decimals ?? 18)} ${inputToken?.symbol ?? ""}`
+                      : "Balance unavailable"}
+                </span>
+              </div>
               <Input
                 aria-invalid={submitted && amountError ? true : undefined}
                 autoComplete="off"
