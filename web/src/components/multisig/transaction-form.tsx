@@ -116,6 +116,8 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
     viewingKey,
     isSupasafeViewKeyReady,
     createProposalParams,
+    strk20Balances,
+    getPrivateBalance,
   } = useMultisigProposalContext(multisigAddress);
   const {
     createMultisigWithdrawProposalAsync,
@@ -150,6 +152,7 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
   );
   const getBalancesAsyncRef = useRef(getBalancesAsync);
   const selectedToken = getTokenByAddress(token);
+  const multisigPrivateBalance = getPrivateBalance(selectedToken?.address);
   const isCreatingProposal =
     isCreatingWithdrawProposal || isCreatingTransferProposal;
   const parsedAmount = useMemo(() => {
@@ -372,7 +375,11 @@ export function TransactionForm({ kind }: { kind: StandardTransactionKind }) {
                     : walletPrivateBalance !== undefined
                       ? `Available: ${formatTokenAmount(walletPrivateBalance, selectedToken?.decimals ?? 18)} ${selectedToken?.symbol ?? ""}`
                       : "Private balance unavailable"
-                : "Private balance"}
+                : strk20Balances.isFetching
+                  ? "Checking private balance..."
+                  : multisigPrivateBalance !== undefined
+                    ? `Available: ${formatTokenAmount(multisigPrivateBalance, selectedToken?.decimals ?? 18)} ${selectedToken?.symbol ?? ""}`
+                    : "Private balance unavailable"}
             </span>
           </div>
           <Select
