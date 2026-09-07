@@ -78,7 +78,7 @@ export function AvnuSwapForm() {
     tokens[1]?.address ?? "",
   );
   const [feeTokenAddress, setFeeTokenAddress] = useState(
-    tokens[1]?.address ?? "",
+    tokens[0]?.address ?? "",
   );
   const [slippage, setSlippage] = useState("0.01");
   const [amount, setAmount] = useState("");
