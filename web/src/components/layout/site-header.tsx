@@ -29,6 +29,8 @@ export function SiteHeader() {
               <a
                 href={SUPASAFE_DOCS_URL}
                 className="rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-primary"
+                rel="noreferrer"
+                target="_blank"
               >
                 Docs
               </a>

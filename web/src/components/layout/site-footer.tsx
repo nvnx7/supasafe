@@ -19,6 +19,8 @@ export function SiteFooter() {
             <a
               href={SUPASAFE_DOCS_URL}
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              rel="noreferrer"
+              target="_blank"
             >
               Docs
             </a>

@@ -15,4 +15,4 @@ export const MAX_OWNERS = 32;
 // "DEVNET" in hex
 export const DEVNET_CHAIN_ID = "0x4445564e4554";
 
-export const SUPASAFE_DOCS_URL = "";
+export const SUPASAFE_DOCS_URL = "https://github.com/nvnx7/supasafe#readme";
